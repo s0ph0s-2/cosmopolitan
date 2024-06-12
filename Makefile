@@ -293,6 +293,8 @@ include net/https/BUILD.mk			# │
 include third_party/regex/BUILD.mk		# │
 include third_party/bash/BUILD.mk		#─┘
 include third_party/tidy/BUILD.mk
+include tool/img/lib/BUILD.mk
+include tool/img/BUILD.mk
 include third_party/BUILD.mk
 include third_party/nsync/testing/BUILD.mk
 include libc/testlib/BUILD.mk

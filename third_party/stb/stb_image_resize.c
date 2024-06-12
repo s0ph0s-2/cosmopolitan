@@ -40,7 +40,7 @@ http://nothings.org/stb");
 #endif
 
 #ifndef STBIR_DEFAULT_FILTER_DOWNSAMPLE
-#define STBIR_DEFAULT_FILTER_DOWNSAMPLE STBIR_FILTER_MITCHELL
+#define STBIR_DEFAULT_FILTER_DOWNSAMPLE STBIR_FILTER_LANCZOS
 #endif
 
 #ifndef STBIR_PROGRESS_REPORT
@@ -431,6 +431,28 @@ static float stbir__filter_mitchell(float x, float s) {
   return (0.0f);
 }
 
+static float sinc(float t) {
+  float a = t * M_PI;
+  if (t == 0.0) {
+    return 1.0;
+  } else {
+    return sin(a) / a;
+  }
+}
+
+static float lanczos_kernel(float x, float t) {
+  if (fabs(x) < t) {
+    return sinc(x) * sinc(x / t);
+  } else {
+    return 0.0;
+  }
+}
+
+static float stbir__filter_lanczos(float x, float s) {
+  STBIR__UNUSED_PARAM(s);
+  return lanczos_kernel(x, 3.0);
+}
+
 static float stbir__support_zero(float s) {
   STBIR__UNUSED_PARAM(s);
   return 0;
@@ -453,6 +475,7 @@ static stbir__filter_info stbir__filter_info_table[] = {
     {stbir__filter_cubic, stbir__support_two},
     {stbir__filter_catmullrom, stbir__support_two},
     {stbir__filter_mitchell, stbir__support_two},
+    {stbir__filter_lanczos, stbir__support_two},
 };
 
 forceinline int stbir__use_upsampling(float ratio) {

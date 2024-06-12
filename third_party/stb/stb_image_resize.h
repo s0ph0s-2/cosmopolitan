@@ -103,6 +103,8 @@ typedef enum {
   STBIR_FILTER_CATMULLROM = 4,
   // Mitchell-Netrevalli filter with B=1/3, C=1/3
   STBIR_FILTER_MITCHELL = 5,
+  // Lanczos filter with a window size of 3
+  STBIR_FILTER_LANCZOS = 6,
 } stbir_filter;
 
 typedef enum {

@@ -7,6 +7,7 @@ o/$(MODE)/tool:			\
 	o/$(MODE)/tool/build	\
 	o/$(MODE)/tool/curl	\
 	o/$(MODE)/tool/decode	\
+	o/$(MODE)/tool/img	\
 	o/$(MODE)/tool/lambda	\
 	o/$(MODE)/tool/net	\
 	o/$(MODE)/tool/plinko	\
