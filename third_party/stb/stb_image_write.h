@@ -11,6 +11,7 @@ int stbi_write_bmp(const char *, int, int, int, const void *);
 int stbi_write_tga(const char *, int, int, int, const void *);
 int stbi_write_hdr(const char *, int, int, int, const float *);
 int stbi_write_jpg(const char *, int, int, int, const void *, int);
+int stbi_write_webp(const char *, int, int, int, const void *, float);
 
 typedef void stbi_write_func(void *, void *, int);
 
@@ -24,7 +25,10 @@ int stbi_write_hdr_to_func(stbi_write_func *, void *, int, int, int,
                            const float *);
 int stbi_write_jpg_to_func(stbi_write_func *, void *, int, int, int,
                            const void *, int);
+int stbi_write_webp_to_func(stbi_write_func *, void *, int, int, int, const void *, float);
 unsigned char *stbi_write_png_to_mem(const unsigned char *, int, int, int, int,
+                                     int *);
+unsigned char *stbi_write_webp_to_mem(const unsigned char *, int, int, int, float,
                                      int *);
 
 void stbi_flip_vertically_on_write(int);

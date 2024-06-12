@@ -13,6 +13,7 @@ LOCAL CHANGES
   - PNG now uses ultra-fast Chromium zlib w/ CLMUL crc32
   - Removed unnecessary ifdefs
   - Removed MSVC torture code
+  - Included libwebp to support saving WebP files
 
 SYNCHRONIZATION POINT (`--date=format:"%a %b %d %H:%M:%S %Y %z"`)
 

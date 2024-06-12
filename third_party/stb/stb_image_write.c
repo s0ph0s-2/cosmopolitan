@@ -28,6 +28,7 @@
 #include "libc/stdio/stdio.h"
 #include "libc/str/str.h"
 #include "third_party/zlib/zlib.h"
+#include "third_party/libwebp/src/webp/encode.h"
 
 __notice(stb_image_write_notice, "\
 stb_image_write (Public Domain)\n\
@@ -610,6 +611,53 @@ int stbi_write_png_to_func(stbi_write_func *func, void *context, int x, int y,
   if (png == NULL) return 0;
   func(context, png, len);
   free(png);
+  return 1;
+}
+
+unsigned char *stbi_write_webp_to_mem(const unsigned char *pixels,
+                                      int x, int y, int n, float quality,
+                                      int *out_len) {
+  size_t written_size;
+  unsigned char *encoded;
+  int stride;
+  assert(n == 3 || n == 4);
+  stride = x * n;
+  if (n == 3) {
+    written_size = WebPEncodeRGB(pixels, x, y, stride, quality, &encoded);
+  } else {
+    written_size = WebPEncodeRGBA(pixels, x, y, stride, quality, &encoded);
+  }
+  *out_len = written_size;
+  return encoded;
+}
+
+int stbi_write_webp(const char *filename, int x, int y, int comp,
+                    const void *data, float quality) {
+  int len;
+  FILE *f;
+  unsigned char *webp;
+  webp = stbi_write_webp_to_mem(data, x, y, comp, quality, &len);
+  if (webp == NULL) return 0;
+  f = fopen(filename, "wb");
+  if (!f) {
+    WebPFree(webp);
+    return 0;
+  }
+  fwrite(webp, 1, len, f);
+  fclose(f);
+  WebPFree(webp);
+  return 1;
+}
+
+int stbi_write_webp_to_func(stbi_write_func *func, void *context, int x, int y,
+                            int comp, const void *data, float quality) {
+  int len;
+  unsigned char *webp;
+  webp = stbi_write_webp_to_mem((const unsigned char *)data, x, y,
+                              comp, quality, &len);
+  if (webp == NULL) return 0;
+  func(context, webp, len);
+  WebPFree(webp);
   return 1;
 }
 

@@ -1,0 +1,21 @@
+DESCRIPTION
+
+  libwebp - Google's WebP image codec
+
+ORIGIN
+
+  https://github.com/webmproject/libwebp
+  845d5476a866141ba35ac133f856fa62f0b7445f
+  Author: jzern <jzern@google.com>
+  Date:   Apr 12, 2024 at 4:48 PM -04:00
+  Bug: webp:627
+  Change-Id: I67a011b62087a8ad64df3b5eb0a1c051adeea60f
+
+DOCUMENTATION
+
+  See https://github.com/webmproject/libwebp/blob/845d5476a866141ba35ac133f856fa62f0b7445f/doc/api.md
+
+LOCAL CHANGES
+
+  - Updated header paths
+  - Configured out everything except libwebp.a, including cwebp/dwebp, etc.
