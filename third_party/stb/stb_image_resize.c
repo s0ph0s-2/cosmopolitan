@@ -431,18 +431,18 @@ static float stbir__filter_mitchell(float x, float s) {
   return (0.0f);
 }
 
-static float sinc(float t) {
+static float stbir__sincf(float t) {
   float a = t * M_PI;
-  if (t == 0.0) {
-    return 1.0;
+  if (t == 0.0f) {
+    return 1.0f;
   } else {
-    return sin(a) / a;
+    return sinf(a) / a;
   }
 }
 
-static float lanczos_kernel(float x, float t) {
-  if (fabs(x) < t) {
-    return sinc(x) * sinc(x / t);
+static float stbir__kernel_lanczos(float x, float t) {
+  if (fabsf(x) < t) {
+    return stbir__sincf(x) * stbir__sincf(x / t);
   } else {
     return 0.0;
   }
@@ -450,7 +450,7 @@ static float lanczos_kernel(float x, float t) {
 
 static float stbir__filter_lanczos(float x, float s) {
   STBIR__UNUSED_PARAM(s);
-  return lanczos_kernel(x, 3.0);
+  return stbir__kernel_lanczos(x, 3.0);
 }
 
 static float stbir__support_zero(float s) {
