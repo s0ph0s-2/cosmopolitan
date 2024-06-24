@@ -2647,6 +2647,43 @@ static unsigned char *stbi__resample_row_nearest(unsigned char *out,
   return out;
 }
 
+static uint8_t stbi__clamp_uint8(float x) {
+  int x_int = (int)x;
+  if ((unsigned)x_int > 255) {
+    if (x_int < 0)
+      return 0;
+    else
+      return 255;
+  }
+  return (uint8_t)x_int;
+}
+
+/**
+ * A full-precision version of the below function because I don't care about
+ * matching the SIMD version—I want colors that match other JPEG decoders.
+ */
+static void stbi__YCbCr_to_RGB_row_fullprec(unsigned char *out, const unsigned char *py,
+                                            const unsigned char *pcb,
+                                            const unsigned char *pcr,
+                                            int count, int step) {
+  int i;
+  for (i = 0; i < count; ++i) {
+    float y = (float)py[i];
+    float cb = (float)pcb[i] - 128.0f;
+    float cr = (float)pcr[i] - 128.0f;
+
+    float r = y + 1.40200f * cr;
+    float g = y - 0.34414f * cb - 0.71414f * cr;
+    float b = y + 1.77200f * cb;
+
+    out[0] = stbi__clamp_uint8(r + 0.5);
+    out[1] = stbi__clamp_uint8(g + 0.5);
+    out[2] = stbi__clamp_uint8(b + 0.5);
+    out[3] = 255;
+    out += step;
+  }
+}
+
 // this is a reduced-precision calculation of YCbCr-to-RGB introduced
 // to make sure the code produces the same results in both SIMD and scalar
 #define stbi__float2fixed(x) (((int)((x)*4096.0f + 0.5f)) << 8)
@@ -2976,7 +3013,7 @@ static unsigned char *load_jpeg_image(stbi__jpeg *z, int *out_x, int *out_y,
               out += n;
             }
           } else {
-            stbi__YCbCr_to_RGB_row(out, y, coutput[1], coutput[2], z->s->img_x,
+            stbi__YCbCr_to_RGB_row_fullprec(out, y, coutput[1], coutput[2], z->s->img_x,
                                    n);
           }
         } else if (z->s->img_n == 4) {
@@ -3000,7 +3037,7 @@ static unsigned char *load_jpeg_image(stbi__jpeg *z, int *out_x, int *out_y,
               out += n;
             }
           } else {  // YCbCr + alpha?  Ignore the fourth channel for now
-            stbi__YCbCr_to_RGB_row(out, y, coutput[1], coutput[2], z->s->img_x,
+            stbi__YCbCr_to_RGB_row_fullprec(out, y, coutput[1], coutput[2], z->s->img_x,
                                    n);
           }
         } else

@@ -9,8 +9,6 @@
 
 #include "third_party/stb/stb_image_resize.h"
 
-const int GRADIENT_HASH_SRGB_LUMA[3] = { 2126, 7152, 722 };
-const int GRADIENT_HASH_SRGB_LUMA_DIV = 10000;
 const int GRADIENT_HASH_THUMBNAIL_WIDTH = 9;
 const int GRADIENT_HASH_THUMBNAIL_HEIGHT = 8;
 
@@ -30,10 +28,25 @@ void PrintArrayFloat(char * prefix, float *array, size_t array_len) {
     printf("]\n");
 }
 
+const float GRADIENT_HASH_SRGB_LUMA[3] = { 0.2126f, 0.7152f, 0.0722f };
+
 inline unsigned char RGBToLuma(const unsigned char *pixel_data) {
-    return ((pixel_data[0] * GRADIENT_HASH_SRGB_LUMA[0])
-        + (pixel_data[1] * GRADIENT_HASH_SRGB_LUMA[1])
-        + (pixel_data[2] * GRADIENT_HASH_SRGB_LUMA[2])) / GRADIENT_HASH_SRGB_LUMA_DIV;
+    float r, g, b, sum;
+    r = GRADIENT_HASH_SRGB_LUMA[0] * (float)pixel_data[0];
+    g = GRADIENT_HASH_SRGB_LUMA[1] * (float)pixel_data[1];
+    b = GRADIENT_HASH_SRGB_LUMA[2] * (float)pixel_data[2];
+    sum = r + g + b;
+    /*printf("%03d,%03d,%03d -> %f + %f + %f = %f (%d)\n",
+        pixel_data[0],
+        pixel_data[1],
+        pixel_data[2],
+        r,
+        g,
+        b,
+        sum,
+        (unsigned char)(uint64_t)(double)sum
+    );*/
+    return (unsigned char)sum;
 }
 
 int ConvertToGrayscale(const unsigned char *image_data,
