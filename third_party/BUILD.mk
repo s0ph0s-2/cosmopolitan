@@ -35,6 +35,7 @@ o/$(MODE)/third_party:				\
 	o/$(MODE)/third_party/python		\
 	o/$(MODE)/third_party/readline		\
 	o/$(MODE)/third_party/regex		\
+	o/$(MODE)/third_party/rxi_vec		\
 	o/$(MODE)/third_party/sed		\
 	o/$(MODE)/third_party/smallz4		\
 	o/$(MODE)/third_party/sqlite3		\

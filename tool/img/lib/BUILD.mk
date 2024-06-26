@@ -26,10 +26,12 @@ TOOL_IMG_LIB_A_DIRECTDEPS =				\
 	LIBC_FMT					\
 	LIBC_INTRIN					\
 	LIBC_MEM					\
+	LIBC_RUNTIME				\
 	LIBC_STDIO					\
 	LIBC_STR					\
 	LIBC_TINYMATH				\
-	THIRD_PARTY_STB
+	THIRD_PARTY_STB				\
+	THIRD_PARTY_RXI_VEC
 
 TOOL_IMG_LIB_A_DEPS :=					\
 	$(call uniq,$(foreach x,$(TOOL_IMG_LIB_A_DIRECTDEPS),$($(x))))

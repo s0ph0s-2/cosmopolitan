@@ -269,6 +269,7 @@ include third_party/zlib/gz/BUILD.mk		# │
 include third_party/intel/BUILD.mk		# │
 include third_party/aarch64/BUILD.mk		# │
 include libc/BUILD.mk				#─┘
+include third_party/rxi_vec/BUILD.mk
 include libc/sock/BUILD.mk			#─┐
 include net/http/BUILD.mk			# ├──ONLINE RUNTIME
 include third_party/musl/BUILD.mk		# │  You can communicate with the network

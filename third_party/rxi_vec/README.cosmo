@@ -1,0 +1,18 @@
+DESCRIPTION
+
+  A type-safe dynamic array implementation for C.
+
+PROVENANCE
+
+  https://github.com/rxi/vec
+  Commit: 20e84224ceb29a8f76d2b9d0ccfc547258a14ec5
+  Author: rxi <rxi@users.noreply.github.com>
+  Date:   Wed Oct 15 23:32:48 2014 +0100
+
+LICENSE
+
+  MIT License
+
+LOCAL CHANGES
+
+  No changes.

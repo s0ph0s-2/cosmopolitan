@@ -7,7 +7,9 @@
 #include <complex.h>
 #include <assert.h>
 
+#include "libc/runtime/runtime.h"
 #include "third_party/stb/stb_image_resize.h"
+#include "third_party/rxi_vec/vec.h"
 
 const int GRADIENT_HASH_THUMBNAIL_WIDTH = 9;
 const int GRADIENT_HASH_THUMBNAIL_HEIGHT = 8;
@@ -223,6 +225,257 @@ int Crop(float *image_data, int width, int height, float **cropped, int crop_w, 
     return 1;
 }
 
+typedef struct GHImage {
+    unsigned char *data;
+    size_t width;
+    size_t height;
+    size_t channels;
+} GHImage_t;
+
+int GHImageInit(GHImage_t *image, size_t width, size_t height, size_t channels) {
+    int data_size = width * height * channels;
+    image->data = calloc(data_size, sizeof(unsigned char));
+    if (!image->data) {
+        return 0;
+    }
+    image->width = width;
+    image->height = height;
+    image->channels = channels;
+    return 1;
+}
+
+void GHImageFree(GHImage_t *image) {
+    free(image->data);
+}
+
+static size_t clamp_int64_to_size(int64_t x, int64_t min, int64_t max) {
+    if (x > max) {
+        return max;
+    } else if (x < min) {
+        return min;
+    } else {
+        return (size_t)x;
+    }
+}
+
+static uint8_t clamp_float_to_uint8_rounded(float x, float min, float max) {
+    if (x > max) {
+        return (uint8_t)max;
+    } else if (x < min) {
+        return (uint8_t)min;
+    } else {
+        return (uint8_t)roundf(x);
+    }
+}
+
+static float sincf(float t) {
+  float a = t * M_PI;
+  if (t == 0.0f) {
+    return 1.0f;
+  } else {
+    return sinf(a) / a;
+  }
+}
+
+static float lanczos3_kernel(float x) {
+  if (fabsf(x) < 3.0f) {
+    return sincf(x) * sincf(x / 3.0f);
+  } else {
+    return 0.0f;
+  }
+}
+
+static size_t get_pixel_idx(GHImage_t image, size_t x, size_t y) {
+    size_t idx = (y * image.width + x) * image.channels;
+    // printf("idx = %d * %d + %d = %d\n", y, image.width, x, idx);
+    return idx;
+}
+
+int ResampleHorizontal(GHImage_t image, int new_width, GHImage_t *output) {
+    int rc;
+    int width, height;
+    vec_float_t ws;
+    float max, ratio, sratio, src_support;
+
+    assert(image.channels == 1);
+    width = image.width;
+    height = image.height;
+    rc = GHImageInit(output, new_width, height, image.channels);
+    if (!rc) {
+        return 0;
+    }
+    vec_init(&ws);
+
+    // Maximum value of an unsigned char.
+    max = 255.0f;
+    ratio = (float)width / (float)new_width;
+    sratio = (ratio < 1.0) ? 1.0 : ratio;
+    // Lanczos always uses 3
+    src_support = 3.0f * sratio;
+
+    for (size_t outx = 0; outx < new_width; outx += 1) {
+        float inputx;
+        int64_t left_l, right_l;
+        size_t left, right;
+        float sum;
+
+        inputx = ((float)outx + 0.5f) * ratio;
+
+        left_l = (int64_t)floorf(inputx - src_support);
+        left = clamp_int64_to_size(left_l, 0, width);
+
+        right_l = (int64_t)ceilf(inputx + src_support);
+        right = clamp_int64_to_size(right_l, left + 1, width);
+
+        inputx = inputx - 0.5f;
+
+        vec_clear(&ws);
+        sum = 0.0f;
+        for (size_t i = left; i < right; i += 1) {
+            float w = lanczos3_kernel(((float)i - inputx) / sratio);
+            rc = vec_push(&ws, w);
+            if (rc < 0) {
+                GHImageFree(output);
+                vec_deinit(&ws);
+                return 0;
+            }
+            sum += w;
+        }
+
+        for (size_t y = 0; y < height; y += 1) {
+            float t = 0.0f;
+
+            int i;
+            float w;
+            vec_foreach(&ws, w, i) {
+                size_t pixel_idx = get_pixel_idx(image, left + i, y);
+                float k;
+                k = (float)(image.data[pixel_idx]);
+                t += k * w;
+            }
+
+            float tprime = t / sum;
+            unsigned char tout = clamp_float_to_uint8_rounded(tprime, 0.0f, max);
+
+            size_t out_idx = get_pixel_idx(*output, outx, y);
+            output->data[out_idx] = tout;
+        }
+    }
+
+    return 1;
+}
+
+int ResampleVertical(GHImage_t image, int new_height, GHImage_t *output) {
+    int rc;
+    int width, height;
+    vec_float_t ws;
+    float max, ratio, sratio, src_support;
+
+    assert(image.channels == 1);
+    width = image.width;
+    height = image.height;
+    // printf("Resampling %dx%d image to %dx%d\n", width, height, width, new_height);
+    rc = GHImageInit(output, width, new_height, image.channels);
+    if (!rc) {
+        return 0;
+    }
+    vec_init(&ws);
+
+    // Maximum value of an unsigned char.
+    max = 255.0f;
+    ratio = (float)height / (float)new_height;
+    sratio = (ratio < 1.0) ? 1.0 : ratio;
+    // Lanczos always uses 3
+    src_support = 3.0f * sratio;
+
+    for (size_t outy = 0; outy < new_height; outy += 1) {
+        float inputy;
+        int64_t left_l, right_l;
+        size_t left, right;
+        float sum;
+
+        inputy = ((float)outy + 0.5f) * ratio;
+
+        left_l = (int64_t)floorf(inputy - src_support);
+        left = clamp_int64_to_size(left_l, 0, height);
+
+        right_l = (int64_t)ceilf(inputy + src_support);
+        right = clamp_int64_to_size(right_l, left + 1, height);
+
+        // printf("left = %d; right = %d\n", left, right);
+        inputy = inputy - 0.5f;
+
+        vec_clear(&ws);
+        sum = 0.0f;
+        for (size_t i = left; i < right; i += 1) {
+            float w = lanczos3_kernel(((float)i - inputy) / sratio);
+            rc = vec_push(&ws, w);
+            // printf("vec_push(&ws, %f)\n", w);
+            if (rc < 0) {
+                GHImageFree(output);
+                vec_deinit(&ws);
+                return 0;
+            }
+            sum += w;
+        }
+        // printf("w sum = %f\n", sum);
+        for (size_t x = 0; x < width; x += 1) {
+            float t = 0.0f;
+
+            int i;
+            float w;
+            vec_foreach(&ws, w, i) {
+                // printf("foreach w (%f) at index %d\n", w, i);
+                size_t pixel_idx = get_pixel_idx(image, x, left + i);
+                // printf("pixel_idx (read) = %d\n", pixel_idx);
+                float k;
+                k = (float)(image.data[pixel_idx]);
+                // printf("pixel value = %f\n", k);
+                t += k * w;
+            }
+
+            float tprime = t / sum;
+            // printf("tprime = %f\n", tprime);
+            unsigned char tout = clamp_float_to_uint8_rounded(tprime, 0.0f, max);
+            // printf("tout = %d\n", tout);
+
+            size_t output_idx = get_pixel_idx(*output, x, outy);
+            output->data[output_idx] = tout;
+            // printf("output_pixel_idx = %d\n", output_idx);
+            // if (output_idx == 1) {
+            //     exit(1);
+            // }
+        }
+    }
+
+    vec_deinit(&ws);
+
+    return 1;
+}
+
+int Resize(GHImage_t image, int nheight, int nwidth, GHImage_t *result) {
+    GHImage_t intermediate;
+    int rc;
+    rc = GHImageInit(result, nwidth, nheight, image.channels);
+    if (!rc) {
+        return 0;
+    }
+    rc = ResampleVertical(image, nheight, &intermediate);
+    if (!rc) {
+        GHImageFree(&intermediate);
+        GHImageFree(result);
+        return 0;
+    }
+    // PrintArrayUint8("vertical_resample = ", intermediate.data, intermediate.width * intermediate.height * intermediate.channels);
+    rc = ResampleHorizontal(intermediate, nwidth, result);
+    if (!rc) {
+        GHImageFree(&intermediate);
+        GHImageFree(result);
+        return 0;
+    }
+    return 1;
+}
+
 int GradientHashResize(unsigned char *image_data, int image_width, int image_height, int image_channels, uint64_t *hash) {
     int rc;
     uint64_t val;
@@ -291,15 +544,15 @@ int GradientHash(unsigned char *image_data, int image_width, int image_height, i
     }
     // PrintArrayUint8("grayscale = ", grayscale, image_width * image_height);
     // Resize the image to appropriate dimensions for the DCT
-    dct_input_uint8 = calloc(
+    /*dct_input_uint8 = calloc(
         dct_width * dct_height,
         sizeof(unsigned char)
     );
     if (!dct_input_uint8) {
         free(grayscale);
         return 0;
-    }
-    rc = stbir_resize_uint8(
+    }*/
+    /*rc = stbir_resize_uint8(
         grayscale,
         image_width,
         image_height,
@@ -309,8 +562,20 @@ int GradientHash(unsigned char *image_data, int image_width, int image_height, i
         dct_height,
         0,
         1
-    );
-    // PrintArrayUint8("img_vals = ", dct_input_uint8, dct_width * dct_height);
+    );*/
+    GHImage_t grayscale_img;
+    grayscale_img.width = image_width;
+    grayscale_img.height = image_height;
+    grayscale_img.channels = 1;
+    grayscale_img.data = grayscale;
+    GHImage_t dct_input_uint8_img;
+    rc = Resize(grayscale_img, dct_height, dct_width, &dct_input_uint8_img);
+    if (!rc) {
+        free(grayscale);
+        return 0;
+    }
+    dct_input_uint8 = dct_input_uint8_img.data;
+    PrintArrayUint8("img_vals = ", dct_input_uint8, dct_width * dct_height);
     // Compute DCT type 2 of the image in both the row and column directions
     dct_input_float = calloc(dct_width * dct_height, sizeof(float));
     if (!dct_input_float) {
