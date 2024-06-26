@@ -517,7 +517,7 @@ int GradientHashResize(unsigned char *image_data, int image_width, int image_hei
         for (unsigned int col = 0; col < (GRADIENT_HASH_THUMBNAIL_WIDTH - 1); col += 1) {
             unsigned int pixel_idx = (row * GRADIENT_HASH_THUMBNAIL_WIDTH) + col;
             val = ((uint64_t)(thumbnail[pixel_idx] > thumbnail[pixel_idx + 1])) << ((row * 8) + col);
-            printf("val(%u, %u): %llu\n", row, col, val);
+            // printf("val(%u, %u): %llu\n", row, col, val);
             *hash += val;
         }
     }
@@ -525,9 +525,20 @@ int GradientHashResize(unsigned char *image_data, int image_width, int image_hei
     return 1;
 }
 
+void BoolsToBytes(const uint8_t bools[64], uint8_t bytes[8]) {
+    for (size_t byte_idx = 0; byte_idx < 8; byte_idx += 1) {
+        uint8_t working_byte = 0;
+        for (size_t bit_idx = 0; bit_idx < 8; bit_idx += 1) {
+            size_t bool_idx = byte_idx * 8 + bit_idx;
+            working_byte |= bools[bool_idx] << bit_idx;
+        }
+        bytes[byte_idx] = working_byte;
+    }
+}
+
 int GradientHash(unsigned char *image_data, int image_width, int image_height, int image_channels, uint64_t *hash) {
     int rc;
-    uint64_t val;
+    // uint64_t val;
     size_t dct_width = 18;
     size_t dct_height = 16;
     unsigned char *grayscale = calloc(image_width * image_height, sizeof(unsigned char));
@@ -600,18 +611,21 @@ int GradientHash(unsigned char *image_data, int image_width, int image_height, i
         return 0;
     }
     free(grayscale);
-    // PrintArrayFloat("cropped = ", dct_crop, dct_width / 2 * dct_height / 2);
+    PrintArrayFloat("cropped = ", dct_crop, dct_width / 2 * dct_height / 2);
     *hash = 0;
+    uint8_t bools[64];
+    uint8_t bytes[8];
+    size_t bool_idx = 0;
     // Compute each bit of the hash
     for (unsigned int row = 0; row < GRADIENT_HASH_THUMBNAIL_HEIGHT; row += 1) {
         for (unsigned int col = 0; col < (GRADIENT_HASH_THUMBNAIL_WIDTH - 1); col += 1) {
             unsigned int pixel_idx = (row * GRADIENT_HASH_THUMBNAIL_WIDTH) + col;
-            val = ((uint64_t)(dct_crop[pixel_idx] < dct_crop[pixel_idx + 1])) << (((7 - row) * 8) + col);
-            // printf("val(%u, %u): %f < %f = %llu\n", row, col, dct_crop[pixel_idx], dct_crop[pixel_idx + 1], val);
-            *hash += val;
-            // printf("hash = %#lx\n", *hash);
+            bools[bool_idx] = dct_crop[pixel_idx] < dct_crop[pixel_idx + 1];
+            bool_idx += 1;
         }
     }
+    BoolsToBytes(bools, bytes);
+    PrintArrayUint8("hash_bytes = ", bytes, 8);
     free(dct_crop);
     return 1;
 }
