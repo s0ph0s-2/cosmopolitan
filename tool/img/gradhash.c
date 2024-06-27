@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "tool/img/lib/image.h"
 #include "third_party/stb/stb_image.h"
 #include "tool/img/lib/gradienthash.h"
 
@@ -19,21 +20,20 @@ int main(int argc, char **argv) {
 }
 */
 
-int main(int argc, char **argv) {
+int main(int argc, char const **argv) {
     int rc;
-    unsigned char *image;
-    int w, h, channels;
+    ILImageu8_t image;
     uint64_t hash;
     if (argc != 2) {
         printf("usage: gradhash filename.jpg\n");
         return 1;
     }
-    image = stbi_load(argv[1], &w, &h, &channels, 0);
-    if (!image) {
+    rc = ILImageu8LoadFromFile(&image, argv[1]);
+    if (!rc) {
         printf("unable to load image: %s\n", stbi_failure_reason());
         return 1;
     }
-    rc = GradientHash(image, w, h, channels, &hash);
+    rc = GradientHash(image, &hash);
     if (!rc) {
         printf("unable to hash image\n");
         return 1;
