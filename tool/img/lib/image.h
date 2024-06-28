@@ -41,6 +41,22 @@ int ILImageu8LoadFromFile(ILImageu8_t *, char const *);
  */
 int ILImageu8LoadFromMemory(ILImageu8_t *, unsigned char const *, size_t);
 /**
+ * Save the provided image to a WebP file with the specified filename.
+ * @param image The image to save to a file.
+ * @param filename The path and name of the file to create.
+ * @param quality The WebP quality setting to use for encoding.
+ * @return 1 if successful, 0 if there was an error.
+ */
+int ILImageu8SaveWebPFile(ILImageu8_t, char const *, float);
+/**
+ * Encode the provided image as a WebP file to a buffer in memory.
+ * @param image The image to encode as WebP.
+ * @param quality The WebP quality setting to use for encoding.
+ * @param length The length of the data in the returned buffer.
+ * @return NULL if there was an error, otherwise a pointer to a section of allocated memory that is `length` bytes long, containing a WebP encoding of `image`.
+ */
+uint8_t *ILImageu8SaveWebPBuffer(ILImageu8_t, float, int *);
+/**
  * Free an image after you're done using it.
  * @param image The image to free.
  */
@@ -79,6 +95,14 @@ static size_t ILImageu8PixelIdx(ILImageu8_t, size_t, size_t);
  * @return 1 if successful, 0 if there was a memory allocation error.
  */
 int ILImageu8Resize(ILImageu8_t, int, int, ILImageu8_t *);
+/**
+ * Resize an image using Lanczos3 resampling to fit within a square with sides of the specified length.
+ * @param image The image to resize.
+ * @param side_size The size of the sides of the square, in pixels.
+ * @param result The resized image.
+ * @return 1 if successful, 0 if there was a memory allocation error.
+ */
+int ILImageu8ResizeToFitSquare(ILImageu8_t, size_t, ILImageu8_t *);
 
 /**
  * Initialize a new image. Each channel is stored in 32-bit floating point numbers.

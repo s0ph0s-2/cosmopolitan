@@ -4,6 +4,7 @@
 
 #include "tool/img/lib/image.h"
 #include "third_party/stb/stb_image.h"
+#include "third_party/stb/stb_image_write.h"
 #include "third_party/rxi_vec/vec.h"
 
 int ILImageu8Init(ILImageu8_t *image, size_t width, size_t height, size_t channels) {
@@ -66,6 +67,14 @@ int ILImageu8LoadFromMemory(ILImageu8_t *image, unsigned char const *buffer, siz
     image->height = h;
     image->channels = channels;
     return 1;
+}
+
+int ILImageu8SaveWebPFile(ILImageu8_t image, char const *filename, float quality) {
+    return stbi_write_webp(filename, image.width, image.height, image.channels, image.data, quality);
+}
+
+uint8_t *ILImageu8SaveWebPBuffer(ILImageu8_t image, float quality, int *length) {
+    return stbi_write_webp_to_mem(image.data, image.width, image.height, image.channels, quality, length);
 }
 
 const float IMG_LIB_SRGB_LUMA[3] = { 0.2126f, 0.7152f, 0.0722f };
@@ -200,7 +209,6 @@ int ILImageu8ResampleHorizontal(ILImageu8_t image, int new_width, ILImageu8_t *o
     vec_float_t ws;
     float max, ratio, sratio, src_support;
 
-    assert(image.channels == 1);
     width = image.width;
     height = image.height;
     rc = ILImageu8Init(output, new_width, height, image.channels);
@@ -246,22 +254,24 @@ int ILImageu8ResampleHorizontal(ILImageu8_t image, int new_width, ILImageu8_t *o
         }
 
         for (size_t y = 0; y < height; y += 1) {
-            float t = 0.0f;
+            for (size_t chan = 0; chan < image.channels; chan += 1) {
+                float t = 0.0f;
 
-            int i;
-            float w;
-            vec_foreach(&ws, w, i) {
-                size_t pixel_idx = ILImageu8PixelIdx(image, left + i, y);
-                float k;
-                k = (float)(image.data[pixel_idx]);
-                t += k * w;
+                int i;
+                float w;
+                vec_foreach(&ws, w, i) {
+                    size_t pixel_idx = ILImageu8PixelIdx(image, left + i, y);
+                    float k;
+                    k = (float)(image.data[pixel_idx + chan]);
+                    t += k * w;
+                }
+
+                float tprime = t / sum;
+                unsigned char tout = clamp_float_to_uint8_rounded(tprime, 0.0f, max);
+
+                size_t out_idx = ILImageu8PixelIdx(*output, outx, y);
+                output->data[out_idx + chan] = tout;
             }
-
-            float tprime = t / sum;
-            unsigned char tout = clamp_float_to_uint8_rounded(tprime, 0.0f, max);
-
-            size_t out_idx = ILImageu8PixelIdx(*output, outx, y);
-            output->data[out_idx] = tout;
         }
     }
 
@@ -282,7 +292,6 @@ int ILImageu8ResampleVertical(ILImageu8_t image, int new_height, ILImageu8_t *ou
     vec_float_t ws;
     float max, ratio, sratio, src_support;
 
-    assert(image.channels == 1);
     width = image.width;
     height = image.height;
     // printf("Resampling %dx%d image to %dx%d\n", width, height, width, new_height);
@@ -331,31 +340,33 @@ int ILImageu8ResampleVertical(ILImageu8_t image, int new_height, ILImageu8_t *ou
         }
         // printf("w sum = %f\n", sum);
         for (size_t x = 0; x < width; x += 1) {
-            float t = 0.0f;
+            for (size_t chan = 0; chan < image.channels; chan += 1) {
+                float t = 0.0f;
 
-            int i;
-            float w;
-            vec_foreach(&ws, w, i) {
-                // printf("foreach w (%f) at index %d\n", w, i);
-                size_t pixel_idx = ILImageu8PixelIdx(image, x, left + i);
-                // printf("pixel_idx (read) = %d\n", pixel_idx);
-                float k;
-                k = (float)(image.data[pixel_idx]);
-                // printf("pixel value = %f\n", k);
-                t += k * w;
+                int i;
+                float w;
+                vec_foreach(&ws, w, i) {
+                    // printf("foreach w (%f) at index %d\n", w, i);
+                    size_t pixel_idx = ILImageu8PixelIdx(image, x, left + i);
+                    // printf("pixel_idx (read) = %d\n", pixel_idx);
+                    float k;
+                    k = (float)(image.data[pixel_idx + chan]);
+                    // printf("pixel value = %f\n", k);
+                    t += k * w;
+                }
+
+                float tprime = t / sum;
+                // printf("tprime = %f\n", tprime);
+                unsigned char tout = clamp_float_to_uint8_rounded(tprime, 0.0f, max);
+                // printf("tout = %d\n", tout);
+
+                size_t output_idx = ILImageu8PixelIdx(*output, x, outy);
+                output->data[output_idx + chan] = tout;
+                // printf("output_pixel_idx = %d\n", output_idx);
+                // if (output_idx == 1) {
+                //     exit(1);
+                // }
             }
-
-            float tprime = t / sum;
-            // printf("tprime = %f\n", tprime);
-            unsigned char tout = clamp_float_to_uint8_rounded(tprime, 0.0f, max);
-            // printf("tout = %d\n", tout);
-
-            size_t output_idx = ILImageu8PixelIdx(*output, x, outy);
-            output->data[output_idx] = tout;
-            // printf("output_pixel_idx = %d\n", output_idx);
-            // if (output_idx == 1) {
-            //     exit(1);
-            // }
         }
     }
 
@@ -385,4 +396,20 @@ int ILImageu8Resize(ILImageu8_t image, int nheight, int nwidth, ILImageu8_t *res
         return 0;
     }
     return 1;
+}
+
+int ILImageu8ResizeToFitSquare(ILImageu8_t image, size_t side_size, ILImageu8_t *result) {
+    size_t result_width, result_height;
+    if (image.width <= side_size && image.height <= side_size) {
+        result_width = image.width;
+        result_height = image.height;
+    } else {
+        float ratio_w = (float)side_size / (float)image.width;
+        float ratio_h = (float)side_size / (float)image.height;
+        float ratio = ratio_w < ratio_h ? ratio_w : ratio_h;
+
+        result_width = (size_t)(image.width * ratio);
+        result_height = (size_t)(image.height * ratio);
+    }
+    return ILImageu8Resize(image, result_height, result_width, result);
 }
