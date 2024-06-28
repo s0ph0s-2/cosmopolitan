@@ -1,7 +1,6 @@
 /*-*- mode:c;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 │ vi: set et ft=c ts=2 sts=2 sw=2 fenc=utf-8                               :vi*/
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <complex.h>
@@ -14,6 +13,7 @@
 const int GRADIENT_HASH_THUMBNAIL_WIDTH = 9;
 const int GRADIENT_HASH_THUMBNAIL_HEIGHT = 8;
 
+#if 0
 /**
  * Print an array of uint8_ts to stdout.
  * @param prefix Arbitrary text to include before the array contents (e.g. a variable name)
@@ -41,6 +41,7 @@ void PrintArrayFloat(char *prefix, float *array, size_t array_len) {
     }
     printf("]\n");
 }
+#endif
 
 // The DCT implementation here is based on
 // https://github.com/ejmahler/rust_dct/blob/master/src/algorithm/type2and3_naive.rs
@@ -63,12 +64,9 @@ size_t ComputeTwiddlesForLength(size_t length, double complex **twiddles) {
     if (!twiddles_scratch) {
         return 0;
     }
-    // printf("twiddles for %d = [", length);
     for (size_t i = 0; i < twiddle_count; i += 1) {
         twiddles_scratch[i] = ComputeSingleTwiddle(i, twiddle_count);
-        // printf("%f%+fi, ", creal(twiddles_scratch[i]), cimag(twiddles_scratch[i]));
     }
-    // printf("]\n");
     *twiddles = twiddles_scratch;
     return twiddle_count;
 }
@@ -174,9 +172,6 @@ int Compute2DDCT2(ILImagef32_t image) {
         free(scratch);
         return 0;
     }
-
-    // PrintArrayFloat("scratch = ", scratch, scratch_size);
-
     TransposeLinearizedArray(scratch, image.width, image.height, image.data);
 
     rc = Compute1DDCT2WithScratch(image.data, image.height, image.width, scratch, scratch_size);
@@ -184,7 +179,6 @@ int Compute2DDCT2(ILImagef32_t image) {
         free(scratch);
         return 0;
     }
-
     TransposeLinearizedArray(scratch, image.width, image.height, image.data);
 
     free(scratch);
@@ -203,7 +197,6 @@ int GradientHash(ILImageu8_t image, uint64_t *hash) {
     if (!rc) {
         return 0;
     }
-    // PrintArrayUint8("grayscale = ", grayscale.data, image_width * image_height);
     // Resize the image to appropriate dimensions for the DCT
     ILImageu8_t dct_input_uint8;
     rc = ILImageu8Resize(grayscale, dct_height, dct_width, &dct_input_uint8);
@@ -211,7 +204,6 @@ int GradientHash(ILImageu8_t image, uint64_t *hash) {
     if (!rc) {
         return 0;
     }
-    PrintArrayUint8("img_vals = ", dct_input_uint8.data, dct_width * dct_height);
     // Compute DCT type 2 of the image in both the row and column directions
     ILImagef32_t dct_input_float;
     rc = ILImageu8ConvertToFloat(dct_input_uint8, &dct_input_float);
@@ -232,16 +224,13 @@ int GradientHash(ILImageu8_t image, uint64_t *hash) {
         ILImagef32Free(&dct_crop);
         return 0;
     }
-    PrintArrayFloat("cropped = ", dct_crop.data, dct_crop.width * dct_crop.height);
     *hash = 0;
     // Compute each bit of the hash
     for (unsigned int row = 0; row < GRADIENT_HASH_THUMBNAIL_HEIGHT; row += 1) {
         for (unsigned int col = 0; col < (GRADIENT_HASH_THUMBNAIL_WIDTH - 1); col += 1) {
             unsigned int pixel_idx = (row * GRADIENT_HASH_THUMBNAIL_WIDTH) + col;
             val = ((uint64_t)(dct_crop.data[pixel_idx] < dct_crop.data[pixel_idx + 1])) << (((7 - row) * 8) + col);
-            printf("val(%u, %u): %f < %f = %llu\n", row, col, dct_crop.data[pixel_idx], dct_crop.data[pixel_idx + 1], val);
             *hash |= val;
-            printf("hash = %#lx\n", *hash);
         }
     }
     ILImagef32Free(&dct_crop);

@@ -59,7 +59,6 @@ int ILImageu8LoadFromMemory(ILImageu8_t *image, unsigned char const *buffer, siz
     int w, h, channels;
     uint8_t *image_data = stbi_load_from_memory(buffer, buffer_len, &w, &h, &channels, 0);
     if (!image_data) {
-        // printf("unable to load image: %s\n", stbi_failure_reason());
         return 0;
     }
     image->data = image_data;
@@ -135,9 +134,7 @@ int ILImagef32Crop(ILImagef32_t image, ILImagef32_t *output, size_t crop_w, size
 }
 
 static size_t ILImageu8PixelIdx(ILImageu8_t image, size_t x, size_t y) {
-    size_t idx = (y * image.width + x) * image.channels;
-    // printf("idx = %d * %d + %d = %d\n", y, image.width, x, idx);
-    return idx;
+    return (y * image.width + x) * image.channels;
 }
 
 
@@ -294,7 +291,6 @@ int ILImageu8ResampleVertical(ILImageu8_t image, int new_height, ILImageu8_t *ou
 
     width = image.width;
     height = image.height;
-    // printf("Resampling %dx%d image to %dx%d\n", width, height, width, new_height);
     rc = ILImageu8Init(output, width, new_height, image.channels);
     if (!rc) {
         return 0;
@@ -322,7 +318,6 @@ int ILImageu8ResampleVertical(ILImageu8_t image, int new_height, ILImageu8_t *ou
         right_l = (int64_t)ceilf(inputy + src_support);
         right = clamp_int64_to_size(right_l, left + 1, height);
 
-        // printf("left = %d; right = %d\n", left, right);
         inputy = inputy - 0.5f;
 
         vec_clear(&ws);
@@ -330,7 +325,6 @@ int ILImageu8ResampleVertical(ILImageu8_t image, int new_height, ILImageu8_t *ou
         for (size_t i = left; i < right; i += 1) {
             float w = lanczos3_kernel(((float)i - inputy) / sratio);
             rc = vec_push(&ws, w);
-            // printf("vec_push(&ws, %f)\n", w);
             if (rc < 0) {
                 ILImageu8Free(output);
                 vec_deinit(&ws);
@@ -338,7 +332,6 @@ int ILImageu8ResampleVertical(ILImageu8_t image, int new_height, ILImageu8_t *ou
             }
             sum += w;
         }
-        // printf("w sum = %f\n", sum);
         for (size_t x = 0; x < width; x += 1) {
             for (size_t chan = 0; chan < image.channels; chan += 1) {
                 float t = 0.0f;
@@ -346,26 +339,16 @@ int ILImageu8ResampleVertical(ILImageu8_t image, int new_height, ILImageu8_t *ou
                 int i;
                 float w;
                 vec_foreach(&ws, w, i) {
-                    // printf("foreach w (%f) at index %d\n", w, i);
                     size_t pixel_idx = ILImageu8PixelIdx(image, x, left + i);
-                    // printf("pixel_idx (read) = %d\n", pixel_idx);
-                    float k;
-                    k = (float)(image.data[pixel_idx + chan]);
-                    // printf("pixel value = %f\n", k);
+                    float k = (float)(image.data[pixel_idx + chan]);
                     t += k * w;
                 }
 
                 float tprime = t / sum;
-                // printf("tprime = %f\n", tprime);
                 unsigned char tout = clamp_float_to_uint8_rounded(tprime, 0.0f, max);
-                // printf("tout = %d\n", tout);
 
                 size_t output_idx = ILImageu8PixelIdx(*output, x, outy);
                 output->data[output_idx + chan] = tout;
-                // printf("output_pixel_idx = %d\n", output_idx);
-                // if (output_idx == 1) {
-                //     exit(1);
-                // }
             }
         }
     }
@@ -388,7 +371,6 @@ int ILImageu8Resize(ILImageu8_t image, int nheight, int nwidth, ILImageu8_t *res
         ILImageu8Free(result);
         return 0;
     }
-    // PrintArrayUint8("vertical_resample = ", intermediate.data, intermediate.width * intermediate.height * intermediate.channels);
     rc = ILImageu8ResampleHorizontal(intermediate, nwidth, result);
     if (!rc) {
         ILImageu8Free(&intermediate);
