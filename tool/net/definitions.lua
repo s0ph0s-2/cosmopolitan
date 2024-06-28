@@ -4075,6 +4075,57 @@ function argon2.hash_encoded(pass, salt, config) end
 ---@overload fun(encoded: string, pass: string): nil, error: string
 function argon2.verify(encoded, pass) end
 
+--- Utilities for working with images.
+img = {}
+--- Decode and load image file into memory.
+--- Supports all formats supported by the underlying STB library (PNG, JPEG, TGA, HDR, BMP).
+--- Note: this function lies about the error message currently because I'm lazy. It always reports "out of memory", even if the actual problem is that e.g. the file doesn't exist.
+---@param filename string Path to the file to load image data from.
+---@return img.Imageu8 image
+---@overload fun(filename: string): nil, error: string
+function img.loadfile(filename) end
+
+--- Decode an image file from a memory buffer.
+--- Supports all formats supported by the underlying STB library (PNG, JPEG, TGA, HDR, BMP).
+--- Note: this function lies about the error message currently because I'm lazy. It always reports "out of memory", even if the actual problem is that e.g. the data is corrupt.
+---@param buffer string Binary data to parse as some kind of encoded image.
+---@return img.Imageu8 image
+---@overload fun(buffer: string): nil, error: string
+function img.loadbuffer(buffer) end
+
+img.Imageu8 = {}
+
+--- Resize an image to the specified dimensions using Lanczos3 resampling.
+--- If `height` is omitted, the image is resized to the largest dimensions that fit within a square with sides of length `width` while maintaining the aspect ratio of the image.
+---@param image img.Imageu8 The image to resize
+---@param width integer The desired new width of the image (or maximum side length of the image if `height` is omitted).
+---@param height integer? The desired new hieight of the image.
+---@return img.Imageu8 resized
+---@overload fun(image: img.Imageu8, width: integer, height: integer): nil, error: string
+function img.Imageu8.resize(image, width, height) end
+
+--- Encode the image as WebP and save it to the provided filename.
+---@param image img.Imageu8 Image to save.
+---@param filename string Filename to put `image` into.
+---@param quality number? WebP quality setting (1–100).
+---@return true
+---@overload fun(image: img.Imageu8, filename: string, quality: number?) nil, error: string
+function img.Imageu8.savefilewebp(image, filename, quality) end
+
+--- Encode the image as WebP and return the encoded data for further processing.
+---@param image img.Imageu8 Image to save.
+---@param quality number? WebP quality setting (1–100).
+---@return string encoded
+---@overload fun(image: img.Imageu8, quality: number?) nil, error: string
+function img.Imageu8.savebufferwebp(image, quality) end
+
+--- Compute the gradient hash (dHash) of the image.
+--- This implementation should produce identical hashes to FuzzySearch (the Rust img_hash crate, with preprocess_dct set).
+--- @param image img.Imageu8 Image to hash.
+--- @return integer hash
+---@overload fun(image: img.Imageu8): nil, error: string
+function img.Imageu8.gradienthash(image) end
+
 --- This module exposes the low-level System Five system call interface.
 --- This module works on all supported platforms, including Windows NT.
 unix = {
