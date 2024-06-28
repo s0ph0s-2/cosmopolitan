@@ -70,6 +70,7 @@ TOOL_NET_DIRECTDEPS =							\
 	TOOL_ARGS							\
 	TOOL_BUILD_LIB							\
 	TOOL_DECODE_LIB							\
+	TOOL_IMG_LIB							\
 	THIRD_PARTY_DOUBLECONVERSION
 
 TOOL_NET_DEPS :=							\
@@ -100,6 +101,7 @@ TOOL_NET_REDBEAN_LUA_MODULES =						\
 	o/$(MODE)/tool/net/lmaxmind.o					\
 	o/$(MODE)/tool/net/lsqlite3.o					\
 	o/$(MODE)/tool/net/largon2.o					\
+	o/$(MODE)/tool/net/limg.o					\
 	o/$(MODE)/tool/net/launch.o
 
 o/$(MODE)/tool/net/redbean.dbg:						\

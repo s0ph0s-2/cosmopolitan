@@ -135,6 +135,7 @@
 #include "tool/net/lpath.h"
 #include "tool/net/luacheck.h"
 #include "tool/net/sandbox.h"
+#include "tool/net/limg.h"
 
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
@@ -5407,6 +5408,7 @@ static const luaL_Reg kLuaLibs[] = {
     {"path", LuaPath},               //
     {"re", LuaRe},                   //
     {"unix", LuaUnix},               //
+    {"img", LuaImg},                 //
 };
 
 static void LuaSetArgv(lua_State *L) {
