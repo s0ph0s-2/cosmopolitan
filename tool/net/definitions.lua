@@ -4093,38 +4093,48 @@ function img.loadfile(filename) end
 ---@overload fun(buffer: string): nil, error: string
 function img.loadbuffer(buffer) end
 
+---@class img.Imageu8: userdata
+--- A loaded image.
 img.Imageu8 = {}
+
+--- Return the width of the image.
+--- @return integer width
+function img.Imageu8:width() end
+
+--- Return the height of the image.
+--- @return integer height
+function img.Imageu8:height() end
+
+--- Return the number of channels in the image.
+--- @return integer channels
+function img.Imageu8:channels() end
 
 --- Resize an image to the specified dimensions using Lanczos3 resampling.
 --- If `height` is omitted, the image is resized to the largest dimensions that fit within a square with sides of length `width` while maintaining the aspect ratio of the image.
----@param image img.Imageu8 The image to resize
 ---@param width integer The desired new width of the image (or maximum side length of the image if `height` is omitted).
 ---@param height integer? The desired new hieight of the image.
 ---@return img.Imageu8 resized
 ---@overload fun(image: img.Imageu8, width: integer, height: integer): nil, error: string
-function img.Imageu8.resize(image, width, height) end
+function img.Imageu8:resize(width, height) end
 
 --- Encode the image as WebP and save it to the provided filename.
----@param image img.Imageu8 Image to save.
 ---@param filename string Filename to put `image` into.
 ---@param quality number? WebP quality setting (1–100).
 ---@return true
 ---@overload fun(image: img.Imageu8, filename: string, quality: number?) nil, error: string
-function img.Imageu8.savefilewebp(image, filename, quality) end
+function img.Imageu8:savefilewebp(filename, quality) end
 
 --- Encode the image as WebP and return the encoded data for further processing.
----@param image img.Imageu8 Image to save.
 ---@param quality number? WebP quality setting (1–100).
 ---@return string encoded
 ---@overload fun(image: img.Imageu8, quality: number?) nil, error: string
-function img.Imageu8.savebufferwebp(image, quality) end
+function img.Imageu8:savebufferwebp(quality) end
 
 --- Compute the gradient hash (dHash) of the image.
 --- This implementation should produce identical hashes to FuzzySearch (the Rust img_hash crate, with preprocess_dct set).
---- @param image img.Imageu8 Image to hash.
 --- @return integer hash
----@overload fun(image: img.Imageu8): nil, error: string
-function img.Imageu8.gradienthash(image) end
+---@overload fun(): nil, error: string
+function img.Imageu8:gradienthash() end
 
 --- This module exposes the low-level System Five system call interface.
 --- This module works on all supported platforms, including Windows NT.

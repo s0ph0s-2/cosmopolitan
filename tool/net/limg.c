@@ -163,6 +163,27 @@ static int LuaImgImageu8GradientHash(lua_State *L) {
   return 1;
 }
 
+static int LuaImgImageu8Width(lua_State *L) {
+  ILImageu8_t *image = luaL_checkudata(L, 1, "img.Imageu8");
+  lua_Integer width = (lua_Integer)image->width;
+  lua_pushinteger(L, width);
+  return 1;
+}
+
+static int LuaImgImageu8Height(lua_State *L) {
+  ILImageu8_t *image = luaL_checkudata(L, 1, "img.Imageu8");
+  lua_Integer height = (lua_Integer)image->height;
+  lua_pushinteger(L, height);
+  return 1;
+}
+
+static int LuaImgImageu8Channels(lua_State *L) {
+  ILImageu8_t *image = luaL_checkudata(L, 1, "img.Imageu8");
+  lua_Integer channels = (lua_Integer)image->channels;
+  lua_pushinteger(L, channels);
+  return 1;
+}
+
 static const luaL_Reg kLuaImgImageu8Meta[] = {
   {"__tostring", LuaImgImageu8ToString},
   {"__gc", LuaImgImageu8Free},
@@ -174,6 +195,9 @@ static const luaL_Reg kLuaImgImageu8Meth[] = {
   {"savefilewebp", LuaImgImageu8SaveFileWebP},
   {"savebufferwebp", LuaImgImageu8SaveBufferWebP},
   {"gradienthash", LuaImgImageu8GradientHash},
+  {"width", LuaImgImageu8Width},
+  {"height", LuaImgImageu8Height},
+  {"channels", LuaImgImageu8Channels},
   {0},
 };
 
