@@ -96,13 +96,25 @@ int ILImageu8ConvertToGrayscale(ILImageu8_t image, ILImageu8_t *output) {
     int rc;
     unsigned int input_length = image.width * image.height * image.channels;
     unsigned int output_idx = 0;
-    if (image.channels != 3 && image.channels != 4) return 0;
     rc = ILImageu8Init(output, image.width, image.height, 1);
     if (!rc) {
         return 0;
     }
-    for (int pixel_idx = 0; pixel_idx < input_length; pixel_idx += image.channels, output_idx += 1) {
-        output->data[output_idx] = RGBToLuma(image.data + pixel_idx);
+    if (image.channels == 1) {
+        // It's already grayscale.
+        memcpy(output->data, image.data, input_length);
+    } else if (image.channels == 2) {
+        // Assume first channel is luma.
+        for (int pixel_idx = 0; pixel_idx < input_length; pixel_idx += image.channels, output_idx += 1) {
+            output->data[output_idx] = image.data[pixel_idx];
+        }
+    } else if (image.channels == 3 || image.channels == 4) {
+        for (int pixel_idx = 0; pixel_idx < input_length; pixel_idx += image.channels, output_idx += 1) {
+            output->data[output_idx] = RGBToLuma(image.data + pixel_idx);
+        }
+    } else {
+        // Unknown pixel layout.
+        return 0;
     }
     return 1;
 }
