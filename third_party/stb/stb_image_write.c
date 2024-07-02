@@ -617,12 +617,37 @@ int stbi_write_png_to_func(stbi_write_func *func, void *context, int x, int y,
 unsigned char *stbi_write_webp_to_mem(const unsigned char *pixels,
                                       int x, int y, int n, float quality,
                                       int *out_len) {
-  size_t written_size;
+  size_t input_length, written_size;
   unsigned char *encoded;
   int stride;
-  assert(n == 3 || n == 4);
+  assert(n >= 1 && n <= 4);
+  input_length = x * y * n;
   stride = x * n;
-  if (n == 3) {
+  // libwebp doesn't support luma-channel-only images, so I'm faking it.
+  if (n == 1) {
+    unsigned char *pixels_rgb = calloc(input_length * 3, sizeof(unsigned char));
+    if (!pixels_rgb) return NULL;
+    size_t output_idx = 0;
+    for (size_t i = 0; i < input_length; ++i, output_idx += 3) {
+      pixels_rgb[output_idx + 0] = pixels[i];
+      pixels_rgb[output_idx + 1] = pixels[i];
+      pixels_rgb[output_idx + 2] = pixels[i];
+    }
+    stride = x * 3;
+    written_size = WebPEncodeRGB(pixels_rgb, x, y, stride, quality, &encoded);
+  } else if (n == 2) {
+    unsigned char *pixels_rgba = calloc(input_length * 2, sizeof(unsigned char));
+    if (!pixels_rgba) return NULL;
+    size_t output_idx = 0;
+    for (size_t i = 0; i < input_length; i += 2, output_idx += 4) {
+      pixels_rgba[output_idx + 0] = pixels[i];
+      pixels_rgba[output_idx + 1] = pixels[i];
+      pixels_rgba[output_idx + 2] = pixels[i];
+      pixels_rgba[output_idx + 3] = pixels[i + 1];
+    }
+    stride = x * 4;
+    written_size = WebPEncodeRGBA(pixels_rgba, x, y, stride, quality, &encoded);
+  } else if (n == 3) {
     written_size = WebPEncodeRGB(pixels, x, y, stride, quality, &encoded);
   } else {
     written_size = WebPEncodeRGBA(pixels, x, y, stride, quality, &encoded);
