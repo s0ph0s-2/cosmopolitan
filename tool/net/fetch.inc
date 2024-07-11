@@ -439,7 +439,10 @@ static int LuaFetch(lua_State *L) {
         }
         break;
       case kHttpClientStateBodyLengthed:
-        if (!g) {
+        if (!g && (strcmp(method, "HEAD") == 0)) {
+          paylen = 0;
+          goto Finished;
+        } else if (!g) {
           WARNF("(ftch) HTTP client %s error", "EOF body");
           goto TransportError;
         }
