@@ -189,7 +189,11 @@ static int LuaFetch(lua_State *L) {
   if (!IsAcceptablePort(port, -1)) {
     return LuaNilError(L, "invalid port");
   }
-  if (!hosthdr) hosthdr = gc(xasprintf("%s:%s", host, port));
+  if (!hosthdr) {
+    if (strcmp(port, "80") == 0 || strcmp(port, "443") == 0)
+      hosthdr = gc(xasprintf("%s", host));
+    else hosthdr = gc(xasprintf("%s:%s", host, port));
+  }
 
   // check if hosthdr is in keepalive table
   if (keepalive && lua_istable(L, 2)) {
