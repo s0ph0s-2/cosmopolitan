@@ -8041,6 +8041,34 @@ function unix.Errno:doc() end
 --- differs from the System Five error code.
 function unix.Errno:__tostring() end
 
+--- Wraps a plain TCP client socket connection with TLS encryption.
+---
+--- Initiates the connection handshake immediately.
+---@param fd integer
+---@param hostname string # for validating that the hostname on the certificate matches what is expected
+---@return crypto.tls.Connection # a connection object, with methods documented below.
+---@nodiscard
+function crypto.tls.wrap(fd, hostname) end
+
+--- Read data from the TLS connection.
+---
+--- This call is blocking.
+---@param bufsize integer # the maximum amount of data to read from the connection.
+---@return string # any data read from the connection.
+function crypto.tls.Connection:read() end
+
+--- Write data to the TLS connection.
+---
+--- This call is blocking.
+---@param data string # the data to write to the connection.
+---@return integer # the number of bytes written to the connection.
+function crypto.tls.Connectino:write() end
+
+--- Close the connection.
+---
+--- Also closes the underlying socket.
+---@return nil
+function crypto.tls.Connection:close() end
 -- CONSTANTS
 
 ---@type integer for debug logging level. See `Log`.
