@@ -76,6 +76,14 @@ uint8_t *ILImageu8SaveWebPBuffer(ILImageu8_t image, float quality, int *length) 
     return stbi_write_webp_to_mem(image.data, image.width, image.height, image.channels, quality, length);
 }
 
+int ILImageu8SavePNGFile(ILImageu8_t image, char const *filename, int stride_bytes) {
+    return stbi_write_png(filename, image.width, image.height, image.channels, image.data, stride_bytes);
+}
+
+uint8_t *ILImageu8SavePNGBuffer(ILImageu8_t image, int stride_bytes, int *length) {
+    return stbi_write_png_to_mem(image.data, stride_bytes, image.width, image.height, image.channels, length);
+}
+
 const float IMG_LIB_SRGB_LUMA[3] = { 0.2126f, 0.7152f, 0.0722f };
 
 /**

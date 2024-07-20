@@ -57,6 +57,22 @@ int ILImageu8SaveWebPFile(ILImageu8_t, char const *, float);
  */
 uint8_t *ILImageu8SaveWebPBuffer(ILImageu8_t, float, int *);
 /**
+ * Save the provided image to a PNG file with the specified filename.
+ * @param image The image to save to a file.
+ * @param filename The path and name of the file to create.
+ * @param stride_bytes Skip this many bytes between each row (in case you're doing a quick-and-dirty crop).
+ * @return 1 if successful, 0 if there was an error.
+ */
+int ILImageu8SavePNGFile(ILImageu8_t, char const *, int);
+/**
+ * Encode the provided image as a PNG file to a buffer in memory.
+ * @param image The image to encode as PNG.
+ * @param stride_bytes Skip this many bytes between each row (in case you're doing a quick-and-dirty crop).
+ * @param length The length of the data in the returned buffer.
+ * @return NULL if there was an error, otherwise a pointer to a section of allocated memory that is `length` bytes long, containing a PNG encoding of `image`.
+ */
+uint8_t *ILImageu8SavePNGBuffer(ILImageu8_t, int, int *);
+/**
  * Free an image after you're done using it.
  * @param image The image to free.
  */

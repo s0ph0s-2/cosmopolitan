@@ -146,6 +146,41 @@ static int LuaImgImageu8SaveBufferWebP(lua_State *L) {
   return 1;
 }
 
+static int LuaImgImageu8SaveFilePNG(lua_State *L) {
+  int rc;
+  ILImageu8_t *image;
+  char const *filename;
+  int stride;
+  image = luaL_checkudata(L, 1, "img.Imageu8");
+  filename = luaL_checkstring(L, 2);
+  stride = luaL_optinteger(L, 3, 0);
+  rc = ILImageu8SavePNGFile(*image, filename, stride);
+  if (!rc) {
+    lua_pushnil(L);
+    lua_pushstring(L, "failed to save file");
+    return 2;
+  }
+  lua_pushboolean(L, 1);
+  return 1;
+}
+
+static int LuaImgImageu8SaveBufferPNG(lua_State *L) {
+  ILImageu8_t *image;
+  int buffer_len;
+  unsigned char *buffer;
+  int stride;
+  image = luaL_checkudata(L, 1, "img.Imageu8");
+  stride = luaL_optinteger(L, 3, 0);
+  buffer = ILImageu8SavePNGBuffer(*image, stride, &buffer_len);
+  if (buffer == NULL) {
+    lua_pushnil(L);
+    lua_pushstring(L, "failed to encode image");
+    return 2;
+  }
+  lua_pushlstring(L, (char *)buffer, buffer_len);
+  return 1;
+}
+
 static int LuaImgImageu8GradientHash(lua_State *L) {
   int rc;
   uint64_t hash;
@@ -194,6 +229,8 @@ static const luaL_Reg kLuaImgImageu8Meth[] = {
   {"resize", LuaImgImageu8Resize},
   {"savefilewebp", LuaImgImageu8SaveFileWebP},
   {"savebufferwebp", LuaImgImageu8SaveBufferWebP},
+  {"savefilepng", LuaImgImageu8SaveFilePNG},
+  {"savebufferpng", LuaImgImageu8SaveBufferPNG},
   {"gradienthash", LuaImgImageu8GradientHash},
   {"width", LuaImgImageu8Width},
   {"height", LuaImgImageu8Height},
