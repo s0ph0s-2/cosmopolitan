@@ -14,7 +14,7 @@
 #include "libc/errno.h"
 #include "libc/fmt/itoa.h"
 #include "libc/fmt/magnumstrs.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/mem/gc.h"
 #include "libc/mem/mem.h"
 #include "libc/runtime/runtime.h"
@@ -447,7 +447,7 @@ int _curl(int argc, char *argv[]) {
     switch (t) {
       case kHttpClientStateHeaders:
         unassert(g);
-        if ((rc = ParseHttpMessage(&msg, p, i)) == -1) {
+        if ((rc = ParseHttpMessage(&msg, p, i, n)) == -1) {
           tinyprint(2, prog, ": ", host, " sent bad http message\n", NULL);
           exit(1);
         }

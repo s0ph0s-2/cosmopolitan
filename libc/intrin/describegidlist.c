@@ -18,24 +18,22 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/calls/groups.internal.h"
 #include "libc/dce.h"
-#include "libc/intrin/asan.internal.h"
 #include "libc/intrin/kprintf.h"
 #include "libc/intrin/popcnt.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/str/str.h"
 
 #define N 128
 
-const char *(DescribeGidList)(char buf[N], int rc, int size,
-                              const uint32_t list[]) {
+const char *_DescribeGidList(char buf[N], int rc, int size,
+                             const uint32_t list[]) {
   if ((rc == -1) || (size < 0))
     return "n/a";
   if (!size)
     return "{}";
   if (!list)
     return "NULL";
-  if ((!IsAsan() && kisdangerous(list)) ||
-      (IsAsan() && !__asan_is_valid(list, size * sizeof(list[0])))) {
+  if (kisdangerous(list)) {
     ksnprintf(buf, N, "%p", list);
     return buf;
   }

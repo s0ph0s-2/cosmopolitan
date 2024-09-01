@@ -25,12 +25,10 @@
 #include "libc/dce.h"
 #include "libc/errno.h"
 #include "libc/fmt/itoa.h"
-#include "libc/intrin/asan.internal.h"
-#include "libc/intrin/strace.internal.h"
+#include "libc/intrin/strace.h"
 #include "libc/log/log.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/nt/enum/computernameformat.h"
-#include "libc/nt/struct/teb.h"
 #include "libc/nt/systeminfo.h"
 #include "libc/runtime/runtime.h"
 #include "libc/str/str.h"
@@ -81,34 +79,13 @@ static textwindows void GetNtName(char *name, int kind) {
   }
 }
 
-static inline textwindows int GetNtMajorVersion(void) {
-#ifdef __x86_64__
-  return NtGetPeb()->OSMajorVersion;
-#else
-  return 0;
-#endif
-}
-
-static inline textwindows int GetNtMinorVersion(void) {
-#ifdef __x86_64__
-  return NtGetPeb()->OSMinorVersion;
-#else
-  return 0;
-#endif
-}
-
-static inline textwindows int GetNtBuildNumber(void) {
-#ifdef __x86_64__
-  return NtGetPeb()->OSBuildNumber;
-#else
-  return 0;
-#endif
-}
-
 static textwindows void GetNtVersion(char *p) {
-  p = FormatUint32(p, GetNtMajorVersion()), *p++ = '.';
-  p = FormatUint32(p, GetNtMinorVersion()), *p++ = '-';
-  p = FormatUint32(p, GetNtBuildNumber());
+  // We could ask GetVersionExW() for this information, but it'll simply
+  // report what we put in the MajorOperatingSystemVersion of the PE ape
+  // header fields. Windows doesn't want us detecting versions it seems.
+  // Chances are they bake all old versions of Windows into Windows, and
+  // run us on the intended one, like some kind of Docker container. Heh
+  strcpy(p, "10.0");
 }
 
 static const char *Str(int rc, const char *s) {
@@ -158,7 +135,7 @@ static const char *Str(int rc, const char *s) {
  */
 int uname(struct utsname *uts) {
   int rc;
-  if (!uts || (IsAsan() && !__asan_is_valid(uts, sizeof(*uts)))) {
+  if (!uts) {
     rc = efault();
   } else if (IsLinux()) {
     struct utsname_linux linux;

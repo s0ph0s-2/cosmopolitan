@@ -18,13 +18,13 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/calls/struct/sched_param.h"
 #include "libc/fmt/itoa.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/str/str.h"
 
 /**
  * Describes clock_gettime() clock argument.
  */
-const char *(DescribeSchedParam)(char buf[32], const struct sched_param *x) {
+const char *_DescribeSchedParam(char buf[32], const struct sched_param *x) {
   char *p;
   if (!x)
     return "0";

@@ -17,11 +17,11 @@
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/fmt/itoa.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/str/str.h"
 #include "libc/sysv/consts/futex.h"
 
-const char *(DescribeFutexOp)(char buf[64], int x) {
+const char *_DescribeFutexOp(char buf[64], int x) {
 
   bool priv = false;
   if (x & FUTEX_PRIVATE_FLAG) {

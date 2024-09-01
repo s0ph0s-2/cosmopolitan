@@ -20,10 +20,11 @@
 #include "libc/calls/calls.h"
 #include "libc/cosmo.h"
 #include "libc/fmt/itoa.h"
+#include "libc/intrin/iscall.h"
 #include "libc/intrin/kprintf.h"
 #include "libc/intrin/weaken.h"
 #include "libc/log/backtrace.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/nexgen32e/gc.internal.h"
 #include "libc/nexgen32e/stackframe.h"
 #include "libc/runtime/memtrack.internal.h"
@@ -45,15 +46,15 @@
  * @param st is open symbol table for current executable
  * @return -1 w/ errno if error happened
  */
-dontinstrument dontasan int PrintBacktraceUsingSymbols(
-    int fd, const struct StackFrame *bp, struct SymbolTable *st) {
+dontinstrument int PrintBacktraceUsingSymbols(int fd,
+                                              const struct StackFrame *bp,
+                                              struct SymbolTable *st) {
   size_t gi;
   intptr_t addr;
   const char *name;
+  char cxxbuf[3000];
   int i, symbol, addend;
-  static char cxxbuf[8192];
   struct Garbages *garbage;
-  static pthread_spinlock_t lock;
   const struct StackFrame *frame;
   (void)gi;
   if (!bp)
@@ -76,6 +77,8 @@ dontinstrument dontasan int PrintBacktraceUsingSymbols(
         --gi;
       } while ((addr = garbage->p[gi].ret) == (intptr_t)_weaken(__gc));
     }
+    if (!kisdangerous((const unsigned char *)addr))
+      addr -= __is_call((const unsigned char *)addr);
 #endif
     if (addr) {
       if ((symbol = __get_symbol(st, addr)) != -1) {
@@ -88,11 +91,10 @@ dontinstrument dontasan int PrintBacktraceUsingSymbols(
       symbol = 0;
       addend = 0;
     }
-    if ((name = __get_symbol_name(st, symbol)) && __is_mangled(name)) {
-      pthread_spin_lock(&lock);
-      __demangle(cxxbuf, name, sizeof(cxxbuf));
+    if ((name = __get_symbol_name(st, symbol)) &&
+        (_weaken(__is_mangled) && _weaken(__is_mangled)(name))) {
+      _weaken(__demangle)(cxxbuf, name, sizeof(cxxbuf));
       kprintf("%012lx %lx %s%+d\n", frame, addr, cxxbuf, addend);
-      pthread_spin_unlock(&lock);
       name = cxxbuf;
     } else {
       kprintf("%012lx %lx %s%+d\n", frame, addr, name, addend);

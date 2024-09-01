@@ -16,8 +16,9 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/intrin/getenv.internal.h"
-#include "libc/intrin/safemacros.internal.h"
+#include "libc/calls/calls.h"
+#include "libc/intrin/getenv.h"
+#include "libc/intrin/safemacros.h"
 #include "libc/log/libfatal.internal.h"
 #include "libc/runtime/internal.h"
 #include "libc/runtime/runtime.h"

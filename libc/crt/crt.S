@@ -17,7 +17,7 @@
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/dce.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 .section .start,"ax",@progbits
 
 #if SupportsXnu() && defined(__x86_64__)
@@ -79,7 +79,7 @@ _start:
 
 //	setup stack
 	xor	%ebp,%ebp
-	and	$ape_stack_round,%rsp
+	and	$-16,%rsp
 
 #if SupportsWindows() && !IsTiny()
 //	make win32 imps crash
@@ -136,9 +136,7 @@ _start:
 	mov	x28,#0
 	mov	x29,#0
 	mov	x30,#0
-	ldr	x1,=ape_stack_round
-	and	x1,x0,x1
-	mov	sp,x1
+	and	sp,x0,#-16
 
 //	second arg shall be struct Syslib passed by ape-m1.c
 //	used to talk to apple's authoritarian libraries

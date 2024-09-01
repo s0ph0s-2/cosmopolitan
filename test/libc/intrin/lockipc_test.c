@@ -19,7 +19,7 @@
 #include "libc/calls/calls.h"
 #include "libc/errno.h"
 #include "libc/intrin/kprintf.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/runtime/runtime.h"
 #include "libc/testlib/testlib.h"
 #include "libc/thread/thread.h"
@@ -30,7 +30,7 @@
 struct SharedMemory {
   pthread_mutex_t mutex;
   volatile long x;
-} * shm;
+}* shm;
 
 void Worker(void) {
   long t;
@@ -47,7 +47,7 @@ TEST(lockipc, mutex) {
   int e, rc, ws, pid;
 
   // create shared memory
-  shm = _mapshared(FRAMESIZE);
+  shm = _mapshared(getpagesize());
 
   // create shared mutex
   pthread_mutexattr_t mattr;
@@ -86,5 +86,5 @@ TEST(lockipc, mutex) {
 
   EXPECT_EQ(PROCESSES * ITERATIONS, shm->x);
   ASSERT_EQ(0, pthread_mutex_destroy(&shm->mutex));
-  ASSERT_SYS(0, 0, munmap(shm, FRAMESIZE));
+  ASSERT_SYS(0, 0, munmap(shm, getpagesize()));
 }

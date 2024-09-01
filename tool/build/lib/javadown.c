@@ -17,6 +17,7 @@
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "tool/build/lib/javadown.h"
+#include "libc/ctype.h"
 #include "libc/mem/mem.h"
 #include "libc/str/str.h"
 
@@ -27,7 +28,7 @@ struct Lines {
   struct Line {
     char *p;
     size_t n;
-  } * p;
+  } *p;
 };
 
 static char *SkipEmptyFirstLine(char *p) {

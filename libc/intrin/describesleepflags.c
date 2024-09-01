@@ -18,13 +18,13 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/fmt/itoa.h"
 #include "libc/fmt/magnumstrs.internal.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/sysv/consts/timer.h"
 
 /**
  * Describes clock_nanosleep() flags argument.
  */
-const char *(DescribeSleepFlags)(char buf[16], int x) {
+const char *_DescribeSleepFlags(char buf[16], int x) {
   switch (x) {
     case 0:
       return "0";

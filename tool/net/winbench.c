@@ -16,7 +16,7 @@
 #include "libc/errno.h"
 #include "libc/fmt/conv.h"
 #include "libc/intrin/kprintf.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/mem/mem.h"
 #include "libc/nt/accounting.h"
 #include "libc/nt/enum/wsaid.h"
@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
   sigset_t block;
   sigfillset(&block);
   pthread_attr_t attr;
-  int pagesz = getauxval(AT_PAGESZ);
+  int pagesz = getpagesize();
   pthread_t *threads = calloc(nthreads, sizeof(pthread_t));
   unassert(!pthread_attr_init(&attr));
   unassert(!pthread_attr_setstacksize(&attr, 65536));

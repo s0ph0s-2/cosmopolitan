@@ -17,13 +17,13 @@
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/fmt/itoa.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/sysv/consts/sol.h"
 
 /**
  * Describes setsockopt() level arguments.
  */
-const char *(DescribeSockLevel)(char buf[12], int x) {
+const char *_DescribeSockLevel(char buf[12], int x) {
   if (x == SOL_SOCKET)
     return "SOL_SOCKET";
   if (x == SOL_IP)

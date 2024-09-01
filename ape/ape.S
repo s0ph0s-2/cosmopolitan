@@ -37,7 +37,7 @@
 #include "libc/calls/metalfile.internal.h"
 #include "libc/dce.h"
 #include "libc/elf/def.h"
-#include "libc/macho.internal.h"
+#include "libc/macho.h"
 #include "libc/nexgen32e/uart.internal.h"
 #include "libc/nt/pedef.internal.h"
 #include "libc/runtime/pc.internal.h"
@@ -761,7 +761,7 @@ ape_phdrs:
 	.quad	0
 	.quad	0
 	.quad	0
-	.stub	ape_stack_align,quad
+	.quad	16
 
 #if SupportsOpenbsd() || SupportsNetbsd()
 	.long	PT_NOTE
@@ -1036,7 +1036,7 @@ ape_pe:	.ascin	"PE",4
 	.quad	ape_pe_base		// ImageBase
 	.long	ape_pe_sectionalignment	// SectionAlignment
 	.long	ape_pe_filealignment	// FileAlignment
-	.short	v_ntversion		// MajorOperatingSystemVersion
+	.short	10			// MajorOperatingSystemVersion
 	.short	0			// MinorOperatingSystemVersion
 	.short	0			// MajorImageVersion
 	.short	0			// MinorImageVersion

@@ -30,6 +30,7 @@
 ** This file contains code to implement the "sqlite" command line
 ** utility for accessing SQLite databases.
 */
+#include "libc/ctype.h"
 #include "libc/dce.h"
 #if (defined(_WIN32) || defined(WIN32)) && !defined(_CRT_SECURE_NO_WARNINGS)
 /* This needs to come before any includes for MSVC compiler */
@@ -131,7 +132,7 @@ typedef unsigned short int u16;
 #include "libc/sysv/consts/s.h"
 #include "libc/runtime/runtime.h"
 #include "libc/runtime/symbols.internal.h"
-#include "tool/args/args.h"
+#include "libc/cosmo.h"
 #include "third_party/sqlite3/extensions.h"
 #include "third_party/sqlite3/sqlite3expert.h"
 #include "third_party/zlib/zlib.h"

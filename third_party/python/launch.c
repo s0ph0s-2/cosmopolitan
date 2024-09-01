@@ -13,7 +13,6 @@
 #include "libc/log/log.h"
 #include "libc/mem/mem.h"
 #include "libc/runtime/runtime.h"
-#include "libc/runtime/stack.h"
 #include "libc/testlib/testlib.h"
 #include "libc/x/x.h"
 #include "third_party/python/Include/abstract.h"
@@ -38,8 +37,6 @@
 #include "third_party/python/Include/unicodeobject.h"
 #include "third_party/python/Include/warnings.h"
 #include "third_party/python/Include/yoink.h"
-
-STATIC_STACK_ALIGN(GetStackSize());
 
 #define USE_COSMO_CRASH MODE_DBG + 0
 
@@ -96,7 +93,7 @@ LaunchPythonModule(const char *name)
 #if USE_COSMO_CRASH
 void
 ShowCrashReportHook(int err, int fd, int sig,
-                    struct siginfo *si, ucontext_t *ctx)
+                    siginfo_t *si, ucontext_t *ctx)
 {
     PyObject *str;
     PyFrameObject *frame;

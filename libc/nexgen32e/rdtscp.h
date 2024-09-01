@@ -25,7 +25,8 @@ COSMOPOLITAN_C_START_
                  : /* no inputs */                 \
                  : "memory");                      \
     EcxOut = (OPT_OUT_IA32_TSC_AUX);               \
-    if (EcxOut) *EcxOut = Ecx;                     \
+    if (EcxOut)                                    \
+      *EcxOut = Ecx;                               \
     Rdx << 32 | Rax;                               \
   })
 

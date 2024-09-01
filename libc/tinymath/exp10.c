@@ -43,7 +43,7 @@ special_case (uint64_t sbits, double_t tmp, uint64_t ki)
 {
   double_t scale, y;
 
-  if (ki - (1ull << 16) < 0x80000000)
+  if ((ki & 0x80000000) == 0)
     {
       /* The exponent of scale might have overflowed by 1.  */
       sbits -= 1ull << 52;
@@ -109,14 +109,14 @@ exp10 (double x)
   /* Reduce x: z = x * N / log10(2), k = round(z).  */
   double_t z = __exp_data.invlog10_2N * x;
   double_t kd;
-  int64_t ki;
+  uint64_t ki;
 #if TOINT_INTRINSICS
   kd = roundtoint (z);
   ki = converttoint (z);
 #else
   kd = eval_as_double (z + Shift);
+  ki = asuint64 (kd);
   kd -= Shift;
-  ki = kd;
 #endif
 
   /* r = x - k * log10(2), r in [-0.5, 0.5].  */
@@ -155,5 +155,6 @@ exp10 (double x)
 
 __strong_reference(exp10, pow10);
 #if LDBL_MANT_DIG == 53 && LDBL_MAX_EXP == 1024
+__weak_reference(exp10, pow10l);
 __weak_reference(exp10, exp10l);
 #endif

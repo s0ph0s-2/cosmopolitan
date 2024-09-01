@@ -17,7 +17,7 @@
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/calls/calls.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/math.h"
 #include "libc/mem/mem.h"
 #include "libc/nexgen32e/nexgen32e.h"
@@ -37,7 +37,7 @@ forceinline void ConvolveGradient(unsigned yn, unsigned xn,
   size_t size;
   unsigned y, x, i, j, k;
   float py[4], px[4], (*tmp)[yn][xn][4];
-  tmp = _mapanon((size = ROUNDUP(sizeof(float) * 4 * xn * yn, FRAMESIZE)));
+  tmp = _mapanon((size = ROUNDUP(sizeof(float) * 4 * xn * yn, getgransize())));
   for (y = 0; y < yn - KW + 1; ++y) {
     for (x = 0; x < xn - KW + 1; ++x) {
       for (k = 0; k < 4; ++k)

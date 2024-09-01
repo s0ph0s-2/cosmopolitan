@@ -16,8 +16,8 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/intrin/describeflags.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/intrin/describeflags.h"
+#include "libc/macros.h"
 #include "libc/nt/enum/processcreationflags.h"
 
 static const struct DescribeFlags kThreadCreationFlags[] = {
@@ -25,7 +25,7 @@ static const struct DescribeFlags kThreadCreationFlags[] = {
     {kNtStackSizeParamIsAReservation, "kNtStackSizeParamIsAReservation"},  //
 };
 
-const char *(DescribeThreadCreateFlags)(char buf[64], uint32_t x) {
-  return DescribeFlags(buf, 64, kThreadCreationFlags,
-                       ARRAYLEN(kThreadCreationFlags), "", x);
+const char *_DescribeThreadCreateFlags(char buf[64], uint32_t x) {
+  return _DescribeFlags(buf, 64, kThreadCreationFlags,
+                        ARRAYLEN(kThreadCreationFlags), "", x);
 }

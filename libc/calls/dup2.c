@@ -23,7 +23,7 @@
 #include "libc/calls/syscall-sysv.internal.h"
 #include "libc/dce.h"
 #include "libc/intrin/kprintf.h"
-#include "libc/intrin/strace.internal.h"
+#include "libc/intrin/strace.h"
 #include "libc/intrin/weaken.h"
 #include "libc/runtime/zipos.internal.h"
 #include "libc/str/str.h"
@@ -76,7 +76,7 @@ int dup2(int oldfd, int newfd) {
       rc = oldfd;
   } else
 #endif
-  if (!IsWindows()) {
+      if (!IsWindows()) {
     if (__isfdkind(oldfd, kFdZip) || __isfdkind(newfd, kFdZip)) {
       if (__vforked) {
         return enotsup();

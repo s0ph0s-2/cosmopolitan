@@ -20,25 +20,23 @@
 #include "libc/calls/struct/termios.internal.h"
 #include "libc/calls/ttydefaults.h"
 #include "libc/dce.h"
-#include "libc/intrin/asan.internal.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/intrin/kprintf.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/sysv/consts/termios.h"
 
 #define N 1024
 
 #define append(...) o += ksnprintf(buf + o, N - o, __VA_ARGS__)
 
-const char *(DescribeTermios)(char buf[N], ssize_t rc,
-                              const struct termios *tio) {
+const char *_DescribeTermios(char buf[N], ssize_t rc,
+                             const struct termios *tio) {
   int o = 0;
   char b128[128];
 
   if (!tio)
     return "NULL";
-  if ((!IsAsan() && kisdangerous(tio)) ||
-      (IsAsan() && !__asan_is_valid(tio, sizeof(*tio)))) {
+  if (kisdangerous(tio)) {
     ksnprintf(buf, N, "%p", tio);
     return buf;
   }
@@ -63,7 +61,7 @@ const char *(DescribeTermios)(char buf[N], ssize_t rc,
       {IUTF8, "IUTF8"},      //
   };
   append(".c_iflag=%s",
-         DescribeFlags(b128, 128, kInput, ARRAYLEN(kInput), "", tio->c_iflag));
+         _DescribeFlags(b128, 128, kInput, ARRAYLEN(kInput), "", tio->c_iflag));
 
   struct DescribeFlags kOutput[] = {
       {OPOST, "OPOST"},    //
@@ -85,8 +83,8 @@ const char *(DescribeTermios)(char buf[N], ssize_t rc,
       {VT1, "VT1"},        //
       {FF1, "FF1"},        //
   };
-  append(", .c_oflag=%s", DescribeFlags(b128, 128, kOutput, ARRAYLEN(kOutput),
-                                        "", tio->c_oflag));
+  append(", .c_oflag=%s", _DescribeFlags(b128, 128, kOutput, ARRAYLEN(kOutput),
+                                         "", tio->c_oflag));
 
   struct DescribeFlags kControl[] = {
       {CS8, "CS8"},          //
@@ -100,8 +98,8 @@ const char *(DescribeTermios)(char buf[N], ssize_t rc,
       {CLOCAL, "CLOCAL"},    //
       {CRTSCTS, "CRTSCTS"},  //
   };
-  append(", .c_cflag=%s", DescribeFlags(b128, 128, kControl, ARRAYLEN(kControl),
-                                        "", tio->c_cflag));
+  append(", .c_cflag=%s", _DescribeFlags(b128, 128, kControl,
+                                         ARRAYLEN(kControl), "", tio->c_cflag));
 
   struct DescribeFlags kLocal[] = {
       {ISIG, "ISIG"},        //
@@ -127,7 +125,7 @@ const char *(DescribeTermios)(char buf[N], ssize_t rc,
          ".c_cc[VTIME]=%d, "
          ".c_cc[VINTR]=CTRL(%#c), "
          ".c_cc[VQUIT]=CTRL(%#c)",
-         DescribeFlags(b128, 128, kLocal, ARRAYLEN(kLocal), "", tio->c_lflag),
+         _DescribeFlags(b128, 128, kLocal, ARRAYLEN(kLocal), "", tio->c_lflag),
          tio->c_cc[VMIN], tio->c_cc[VTIME], CTRL(tio->c_cc[VINTR]),
          CTRL(tio->c_cc[VQUIT]));
 

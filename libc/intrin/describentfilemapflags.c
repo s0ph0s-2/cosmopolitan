@@ -16,8 +16,8 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/intrin/describeflags.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/intrin/describeflags.h"
+#include "libc/macros.h"
 #include "libc/nt/enum/filemapflags.h"
 
 static const struct DescribeFlags kFileMapFlags[] = {
@@ -30,7 +30,7 @@ static const struct DescribeFlags kFileMapFlags[] = {
     {kNtFileMapLargePages, "LargePages"},          //
 };
 
-const char *(DescribeNtFileMapFlags)(char buf[64], uint32_t x) {
-  return DescribeFlags(buf, 64, kFileMapFlags, ARRAYLEN(kFileMapFlags),
-                       "kNtFileMap", x);
+const char *_DescribeNtFileMapFlags(char buf[64], uint32_t x) {
+  return _DescribeFlags(buf, 64, kFileMapFlags, ARRAYLEN(kFileMapFlags),
+                        "kNtFileMap", x);
 }

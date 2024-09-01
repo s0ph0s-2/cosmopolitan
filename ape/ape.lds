@@ -310,7 +310,7 @@ SECTIONS {
     . = ALIGN(__privileged_end > __privileged_start ? CONSTANT(COMMONPAGESIZE) : 0);
 /*END: morphable code */
     __privileged_start = .;
-    *(.privileged)
+    *(.privileged .privileged.*)
     __privileged_end = .;
 
     KEEP(*(.ape.pad.text))
@@ -328,6 +328,10 @@ SECTIONS {
     *(.rodata .rodata.*)
     *(.ubsan.types)
     *(.ubsan.data)
+
+    __eh_frame_hdr_start_actual = .;
+    *(.eh_frame_hdr)
+    __eh_frame_hdr_end_actual = .;
 
     /* Legal Notices */
     __notices = .;
@@ -421,6 +425,11 @@ SECTIONS {
     KEEP(*(.fini_array))
     KEEP(*(.dtors))
     __fini_array_end = .;
+
+    __eh_frame_start = .;
+    KEEP(*(.eh_frame))
+    *(.eh_frame.*)
+    __eh_frame_end = .;
 
 /*BEGIN: Post-Initialization Read-Only */
     . = ALIGN(. != 0 ? __SIZEOF_POINTER__ : 0);
@@ -588,8 +597,6 @@ ape_stack_vaddr = DEFINED(ape_stack_vaddr) ? ape_stack_vaddr : 0x700000000000;
 ape_stack_paddr = ape_ram_paddr + ape_ram_filesz;
 ape_stack_filesz = 0;
 ape_stack_memsz = DEFINED(ape_stack_memsz) ? ape_stack_memsz : 8 * 1024 * 1024;
-ape_stack_align = DEFINED(ape_stack_align) ? ape_stack_align : 16;
-ape_stack_round = -ape_stack_align;
 
 ape_note_offset = ape_cod_offset + (ape_note - ape_cod_vaddr);
 ape_note_filesz = ape_note_end - ape_note;
@@ -602,6 +609,9 @@ ape_text_filesz = ADDR(.rodata) - ADDR(.text);
 ape_text_memsz = ape_text_filesz;
 ape_text_align = CONSTANT(COMMONPAGESIZE);
 ape_text_rva = RVA(ape_text_vaddr);
+
+__eh_frame_hdr_start = __eh_frame_hdr_end_actual > __eh_frame_hdr_start_actual ? __eh_frame_hdr_start_actual : 0;
+__eh_frame_hdr_end = __eh_frame_hdr_end_actual > __eh_frame_hdr_start_actual ? __eh_frame_hdr_end_actual : 0;
 
 /* we roundup here because xnu wants the file load segments page-aligned */
 /* but we don't want to add the nop padding to the ape program, so we'll */
@@ -715,7 +725,6 @@ ape_idataz = LINK_WINDOWS ? RVA(ape_idata_iat) : 0;
 ape_idata_iatsize = LINK_WINDOWS ? ape_idata_iatend - ape_idata_iat : 0;
 ape_idata = LINK_WINDOWS ? RVA(ape_idata_idt) : 0;
 ape_idata_idtsize = LINK_WINDOWS ? ape_idata_idtend - ape_idata_idt : 0;
-v_ntversion = LINK_WINDOWS ? 6 : 1;
 v_ntdllchar = LINK_WINDOWS ? 288 : 0;
 v_ntsubversion = LINK_WINDOWS ? 6 : 5;
 v_ntsubsystem = (LINK_WINDOWS

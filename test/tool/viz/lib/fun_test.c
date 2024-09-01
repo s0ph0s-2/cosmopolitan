@@ -17,9 +17,9 @@
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/log/check.h"
-#include "libc/macros.internal.h"
-#include "libc/stdio/rand.h"
+#include "libc/macros.h"
 #include "libc/mem/gc.h"
+#include "libc/stdio/rand.h"
 #include "libc/str/str.h"
 #include "libc/testlib/ezbench.h"
 #include "libc/testlib/testlib.h"
@@ -212,7 +212,7 @@ void ExpandLuminosityRange(unsigned n, unsigned char *Y) {
 }
 
 TEST(ExpandLuminosityRange, test) {
-  unsigned char Y[32];
+  _Alignas(16) unsigned char Y[32];
   Y[0] = 0;
   ExpandLuminosityRange(16, Y);
   EXPECT_EQ(0, Y[0]);

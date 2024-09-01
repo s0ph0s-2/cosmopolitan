@@ -3,7 +3,7 @@
 ╚──────────────────────────────────────────────────────────────────────────────╝
 │                                                                              │
 │  Lua                                                                         │
-│  Copyright © 2004-2021 Lua.org, PUC-Rio.                                     │
+│  Copyright © 2004-2023 Lua.org, PUC-Rio.                                     │
 │                                                                              │
 │  Permission is hereby granted, free of charge, to any person obtaining       │
 │  a copy of this software and associated documentation files (the             │
@@ -27,6 +27,7 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #define liolib_c
 #define LUA_LIB
+
 #include "libc/calls/calls.h"
 #include "libc/calls/weirdtypes.h"
 #include "libc/errno.h"
@@ -36,6 +37,7 @@
 #include "third_party/lua/lauxlib.h"
 #include "third_party/lua/lprefix.h"
 #include "third_party/lua/lua.h"
+#include "libc/ctype.h"
 #include "third_party/lua/lualib.h"
 __static_yoink("lua_notice");
 

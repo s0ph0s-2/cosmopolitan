@@ -8,7 +8,7 @@
 #include "libc/intrin/bsr.h"
 #include "libc/intrin/likely.h"
 #include "libc/intrin/weaken.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/mem/mem.h"
 #include "libc/nexgen32e/rdtsc.h"
 #include "libc/runtime/internal.h"
@@ -23,26 +23,32 @@
 #include "libc/thread/thread.h"
 #include "libc/thread/tls.h"
 #include "third_party/dlmalloc/vespene.internal.h"
+#include "libc/thread/tls.h"
+#include "libc/sysv/consts/mremap.h"
 #include "third_party/nsync/mu.h"
 
+#if !IsTiny()
+#define FOOTERS 1
+#define MSPACES 1
+#define ONLY_MSPACES 1 // enables scalable multi-threaded malloc
+#define USE_SPIN_LOCKS 1 // only profitable using sched_getcpu()
+#else
+#define INSECURE 1
+#define PROCEED_ON_ERROR 1
 #define FOOTERS 0
 #define MSPACES 0
+#define ONLY_MSPACES 0
+#endif
 
 #define HAVE_MMAP 1
-#define HAVE_MREMAP 0
+#define HAVE_MREMAP 1
 #define HAVE_MORECORE 0
 #define USE_LOCKS 2
-#define USE_SPIN_LOCKS 0
 #define MORECORE_CONTIGUOUS 0
 #define MALLOC_INSPECT_ALL 1
 #define ABORT_ON_ASSERT_FAILURE 0
 #define LOCK_AT_FORK 1
 #define NO_MALLOC_STATS 1
-
-#if IsTiny()
-#define INSECURE 1
-#define PROCEED_ON_ERROR 1
-#endif
 
 #if IsModeDbg()
 #define DEBUG 1
@@ -55,24 +61,29 @@
 #define assert(x) if(!(x)) ABORT
 #endif
 
-#include "third_party/dlmalloc/platform.inc"
-#include "third_party/dlmalloc/locks.inc"
-#include "third_party/dlmalloc/chunks.inc"
-#include "third_party/dlmalloc/headfoot.inc"
-#include "third_party/dlmalloc/global.inc"
-#include "third_party/dlmalloc/system.inc"
-#include "third_party/dlmalloc/hooks.inc"
-#include "third_party/dlmalloc/debugging.inc"
-#include "third_party/dlmalloc/indexing.inc"
-#include "third_party/dlmalloc/binmaps.inc"
-#include "third_party/dlmalloc/runtimechecks.inc"
-#include "third_party/dlmalloc/init.inc"
-#include "third_party/dlmalloc/debuglib.inc"
-#include "third_party/dlmalloc/statistics.inc"
-#include "third_party/dlmalloc/smallbins.inc"
-#include "third_party/dlmalloc/directmap.inc"
-#include "third_party/dlmalloc/trees.inc"
-#include "third_party/dlmalloc/management.inc"
+#include "platform.inc"
+#include "locks.inc"
+#include "chunks.inc"
+#include "headfoot.inc"
+
+#if ONLY_MSPACES
+#include "threaded.inc"
+#endif
+
+#include "global.inc"
+#include "system.inc"
+#include "hooks.inc"
+#include "debugging.inc"
+#include "indexing.inc"
+#include "binmaps.inc"
+#include "runtimechecks.inc"
+#include "init.inc"
+#include "debuglib.inc"
+#include "statistics.inc"
+#include "smallbins.inc"
+#include "directmap.inc"
+#include "trees.inc"
+#include "management.inc"
 
 /* -------------------------- System allocation -------------------------- */
 
@@ -185,7 +196,7 @@ static void* sys_alloc(mstate m, size_t nb) {
   }
 
   if (HAVE_MMAP && tbase == CMFAIL) {  /* Try MMAP */
-    char* mp = (char*)(dlmalloc_requires_more_vespene_gas(asize));
+    char* mp = dlmalloc_requires_more_vespene_gas(asize);
     if (mp != CMFAIL) {
       tbase = mp;
       tsize = asize;
@@ -356,7 +367,7 @@ static int sys_trim(mstate m, size_t pad) {
             size_t newsize = sp->size - extra;
             (void)newsize; /* placate people compiling -Wunused-variable */
             /* Prefer mremap, fall back to munmap */
-            if (CALL_MREMAP(sp->base, sp->size, newsize, 0) != MFAIL ||
+            if (CALL_MREMAP(sp->base, sp->size, newsize, 0) != MAP_FAILED ||
                 (!extra || !CALL_MUNMAP(sp->base + newsize, extra))) {
               released = extra;
             }
@@ -584,7 +595,8 @@ static void* tmalloc_small(mstate m, size_t nb) {
 
 #if !ONLY_MSPACES
 
-void* dlmalloc(size_t bytes) {
+void* dlmalloc_single(size_t bytes) {
+
   /*
      Basic algorithm:
      If a small request (< 256 bytes minus per-chunk overhead):
@@ -733,7 +745,6 @@ void dlfree(void* mem) {
      free chunks, if they exist, and then place in a bin.  Intermixed
      with special cases for top, dv, mmapped chunks, and usage errors.
   */
-
   if (mem != 0) {
     mchunkptr p  = mem2chunk(mem);
 #if FOOTERS
@@ -745,6 +756,8 @@ void dlfree(void* mem) {
 #else /* FOOTERS */
 #define fm gm
 #endif /* FOOTERS */
+
+    /* Otherwise free memory globally. */
     if (!PREACTION(fm)) {
       check_inuse_chunk(fm, p);
       if (RTCHECK(ok_address(fm, p) && ok_inuse(p))) {
@@ -836,7 +849,7 @@ void dlfree(void* mem) {
 #endif /* FOOTERS */
 }
 
-void* dlcalloc(size_t n_elements, size_t elem_size) {
+void* dlcalloc_single(size_t n_elements, size_t elem_size) {
   void* mem;
   size_t req = 0;
   if (ckd_mul(&req, n_elements, elem_size)) req = -1;
@@ -932,10 +945,10 @@ static mchunkptr try_realloc_chunk(mstate m, mchunkptr p, size_t nb,
 
 static void* internal_memalign(mstate m, size_t alignment, size_t bytes) {
   void* mem = 0;
-  if (alignment <  MIN_CHUNK_SIZE) /* must be at least a minimum chunk size */
+  if (alignment < MIN_CHUNK_SIZE) /* must be at least a minimum chunk size */
     alignment = MIN_CHUNK_SIZE;
   /* alignment is 32+ bytes rounded up to nearest two power */
-  alignment = 2ul << bsrl(MAX(MIN_CHUNK_SIZE, alignment) - 1);
+  alignment = 2ul << bsrl(alignment - 1);
   if (bytes >= MAX_REQUEST - alignment) {
     if (m != 0)  { /* Test isn't needed but avoids compiler warning */
       MALLOC_FAILURE_ACTION;
@@ -1208,7 +1221,8 @@ static void internal_inspect_all(mstate m,
           }
         }
         if (start < (void*)next)  /* skip if all space is bookkeeping */
-          handler(start, next, used, arg);
+          if (start != s) /* [jart] fix phantom alloc bug w/ mspace+mmap */
+            handler(start, next, used, arg);
         if (q == top)
           break;
         q = next;
@@ -1222,7 +1236,7 @@ static void internal_inspect_all(mstate m,
 
 #if !ONLY_MSPACES
 
-void* dlrealloc(void* oldmem, size_t bytes) {
+void* dlrealloc_single(void* oldmem, size_t bytes) {
   void* mem = 0;
   if (oldmem == 0) {
     mem = dlmalloc(bytes);
@@ -1248,7 +1262,7 @@ void* dlrealloc(void* oldmem, size_t bytes) {
     }
 #endif /* FOOTERS */
     if (!PREACTION(m)) {
-      mchunkptr newp = try_realloc_chunk(m, oldp, nb, 1);
+      mchunkptr newp = try_realloc_chunk(m, oldp, nb, MREMAP_MAYMOVE);
       POSTACTION(m);
       if (newp != 0) {
         check_inuse_chunk(m, newp);
@@ -1298,7 +1312,7 @@ void* dlrealloc_in_place(void* oldmem, size_t bytes) {
   return mem;
 }
 
-void* dlmemalign(size_t alignment, size_t bytes) {
+void* dlmemalign_single(size_t alignment, size_t bytes) {
   if (alignment <= MALLOC_ALIGNMENT) {
     return dlmalloc(bytes);
   }
@@ -1376,7 +1390,7 @@ size_t dlmalloc_set_footprint_limit(size_t bytes) {
 }
 
 #if !NO_MALLINFO
-struct mallinfo dlmallinfo(void) {
+struct mallinfo dlmallinfo_single(void) {
   return internal_mallinfo(gm);
 }
 #endif /* NO_MALLINFO */
@@ -1408,6 +1422,20 @@ size_t dlmalloc_usable_size(void* mem) {
 }
 
 #endif /* !ONLY_MSPACES */
+
+#if ONLY_MSPACES
+void *(*dlmalloc)(size_t);
+void *(*dlcalloc)(size_t, size_t);
+void *(*dlrealloc)(void *, size_t);
+void *(*dlmemalign)(size_t, size_t);
+struct mallinfo (*dlmallinfo)(void);
+#else
+void *(*dlmalloc)(size_t) = dlmalloc_single;
+void *(*dlcalloc)(size_t, size_t) = dlcalloc_single;
+void *(*dlrealloc)(void *, size_t) = dlrealloc_single;
+void *(*dlmemalign)(size_t, size_t) = dlmemalign_single;
+struct mallinfo (*dlmallinfo)(void) = dlmallinfo_single;
+#endif
 
 /* ----------------------------- user mspaces ---------------------------- */
 

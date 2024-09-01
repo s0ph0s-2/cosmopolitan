@@ -19,24 +19,22 @@
 #include "libc/calls/struct/winsize.h"
 #include "libc/calls/struct/winsize.internal.h"
 #include "libc/dce.h"
-#include "libc/intrin/asan.internal.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/intrin/kprintf.h"
 #include "libc/limits.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 
 #define N 64
 
 #define append(...) o += ksnprintf(buf + o, N - o, __VA_ARGS__)
 
-const char *(DescribeWinsize)(char buf[N], int rc, const struct winsize *ws) {
+const char *_DescribeWinsize(char buf[N], int rc, const struct winsize *ws) {
   int o = 0;
   if (!ws)
     return "NULL";
   if (rc == -1)
     return "n/a";
-  if ((!IsAsan() && kisdangerous(ws)) ||
-      (IsAsan() && !__asan_is_valid(ws, sizeof(*ws)))) {
+  if (kisdangerous(ws)) {
     ksnprintf(buf, N, "%p", ws);
     return buf;
   }

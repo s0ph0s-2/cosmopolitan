@@ -18,10 +18,9 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/calls/syscall_support-nt.internal.h"
 #include "libc/dce.h"
-#include "libc/intrin/asan.internal.h"
 #include "libc/intrin/kprintf.h"
-#include "libc/intrin/strace.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/intrin/strace.h"
+#include "libc/macros.h"
 #include "libc/nt/systeminfo.h"
 #include "libc/str/str.h"
 #include "libc/sysv/consts/o.h"
@@ -56,6 +55,19 @@ textwindows size_t __normntpath(char16_t *p, size_t n) {
       // matched "/../" or "/..$"
       while (j && p[j - 1] == '\\')
         --j;
+      if (j && p[j - 1] == '.') {
+        // matched "." before
+        if (j >= 2 && p[j - 2] == '.' &&  //
+            (j == 2 || p[j - 3] == '\\')) {
+          // matched "^.." or "/.." before
+          p[++j] = '.';
+          ++j;
+          continue;
+        } else if (j == 1 || p[j - 2] == '\\') {
+          // matched "^." or "/." before
+          continue;
+        }
+      }
       while (j && p[j - 1] != '\\')
         --j;
     } else {
@@ -96,7 +108,7 @@ textwindows int __mkntpath2(const char *path,
   // 4. Need ≥13 for mkdir() i.e. 1+8+3+1, e.g. "\\ffffffff.xxx\0"
   //    which is an "8.3 filename" from the DOS days
 
-  if (!path || (IsAsan() && !__asan_is_valid_str(path))) {
+  if (!path) {
     return efault();
   }
 

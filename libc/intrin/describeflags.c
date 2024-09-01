@@ -16,10 +16,10 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 
-const char *DescribeFlags(char *p, size_t n, const struct DescribeFlags *d,
-                          size_t m, const char *prefix, unsigned x) {
+const char *_DescribeFlags(char *p, size_t n, const struct DescribeFlags *d,
+                           size_t m, const char *prefix, unsigned x) {
   bool t;
   char b[21];
   size_t i, j, k;

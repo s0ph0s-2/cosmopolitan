@@ -18,9 +18,9 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/calls/calls.h"
 #include "libc/fmt/itoa.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 
-const char *(DescribeWhence)(char buf[12], int whence) {
+const char *_DescribeWhence(char buf[12], int whence) {
   if (whence == SEEK_SET)
     return "SEEK_SET";
   if (whence == SEEK_CUR)

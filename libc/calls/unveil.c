@@ -31,9 +31,9 @@
 #include "libc/errno.h"
 #include "libc/fmt/conv.h"
 #include "libc/fmt/libgen.h"
-#include "libc/intrin/strace.internal.h"
+#include "libc/intrin/strace.h"
 #include "libc/limits.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/nexgen32e/vendor.internal.h"
 #include "libc/runtime/internal.h"
 #include "libc/runtime/runtime.h"
@@ -404,6 +404,15 @@ int sys_unveil_linux(const char *path, const char *permissions) {
  *
  *     - `c` allows `path` to be created and removed, corresponding to
  *       the pledge promise "cpath".
+ *
+ * If having unveil() security is mission critical, then add this code
+ * to the start of your main() function to ensure your program fails
+ * with an error if it isn't available.
+ *
+ *     if (unveil("", 0) >= 0) {
+ *       fprintf(stderr, "error: OS doesn't support unveil() security\n");
+ *       exit(1);
+ *     }
  *
  * @return 0 on success, or -1 w/ errno; note: if `unveil("",0)` is used
  *     to perform a feature check, then on Linux a value greater than 0

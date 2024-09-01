@@ -24,8 +24,10 @@
 #include "libc/dce.h"
 #include "libc/errno.h"
 #include "libc/fmt/itoa.h"
+#include "libc/intrin/describebacktrace.h"
+#include "libc/intrin/iscall.h"
 #include "libc/intrin/kprintf.h"
-#include "libc/intrin/promises.internal.h"
+#include "libc/intrin/promises.h"
 #include "libc/intrin/weaken.h"
 #include "libc/log/backtrace.internal.h"
 #include "libc/log/color.internal.h"
@@ -112,6 +114,8 @@ static int PrintBacktraceUsingAddr2line(int fd, const struct StackFrame *bp) {
         --gi;
       } while ((addr = garbage->p[gi].ret) == (uintptr_t)_weaken(__gc));
     }
+    if (!kisdangerous((const unsigned char *)addr))
+      addr -= __is_call((const unsigned char *)addr);
 #endif
     argv[i++] = buf + j;
     buf[j++] = '0';

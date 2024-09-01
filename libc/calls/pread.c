@@ -24,12 +24,12 @@
 #include "libc/calls/struct/iovec.internal.h"
 #include "libc/calls/syscall-sysv.internal.h"
 #include "libc/dce.h"
-#include "libc/intrin/asan.internal.h"
-#include "libc/intrin/strace.internal.h"
+#include "libc/intrin/strace.h"
 #include "libc/intrin/weaken.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/runtime/runtime.h"
 #include "libc/runtime/zipos.internal.h"
+#include "libc/stdio/sysparam.h"
 #include "libc/sysv/errfuns.h"
 
 /**
@@ -39,7 +39,7 @@
  *
  * @param fd is something open()'d earlier, noting pipes might not work
  * @param buf is copied into, cf. copy_file_range(), sendfile(), etc.
- * @param size in range [1..0x7ffff000] is reasonable
+ * @param size is always saturated to 0x7ffff000 automatically
  * @param offset is bytes from start of file at which read begins
  * @return [1..size] bytes on success, 0 on EOF, or -1 w/ errno; with
  *     exception of size==0, in which case return zero means no error
@@ -58,12 +58,14 @@ ssize_t pread(int fd, void *buf, size_t size, int64_t offset) {
   ssize_t rc;
   BEGIN_CANCELATION_POINT;
 
+  // XNU and BSDs will EINVAL if requested bytes exceeds INT_MAX
+  // this is inconsistent with Linux which ignores huge requests
+  size = MIN(size, 0x7ffff000);
+
   if (offset < 0) {
     rc = einval();
   } else if (fd < 0) {
     rc = ebadf();
-  } else if (IsAsan() && !__asan_is_valid(buf, size)) {
-    rc = efault();
   } else if (__isfdkind(fd, kFdZip)) {
     rc = _weaken(__zipos_read)(
         (struct ZiposHandle *)(intptr_t)g_fds.p[fd].handle,

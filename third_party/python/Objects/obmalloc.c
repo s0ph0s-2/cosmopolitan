@@ -7,7 +7,6 @@
 #include "libc/assert.h"
 #include "libc/calls/calls.h"
 #include "libc/dce.h"
-#include "libc/intrin/asan.internal.h"
 #include "libc/mem/mem.h"
 #include "libc/runtime/runtime.h"
 #include "libc/sysv/consts/map.h"
@@ -95,13 +94,6 @@ static void* _PyObject_Realloc(void *ctx, void *ptr, size_t size);
 static inline void *
 _PyMem_RawMalloc(void *ctx, size_t size)
 {
-#ifdef __COSMOPOLITAN__
-#ifdef __SANITIZE_ADDRESS__
-    return __asan_memalign(16, size);
-#else
-    return dlmalloc(size);
-#endif
-#else
     /* PyMem_RawMalloc(0) means malloc(1). Some systems would return NULL
        for malloc(0), which would be treated as an error. Some platforms would
        return a pointer with no memory behind it, which would break pymalloc.
@@ -109,19 +101,11 @@ _PyMem_RawMalloc(void *ctx, size_t size)
     if (size == 0)
         size = 1;
     return malloc(size);
-#endif
 }
 
 static inline void *
 _PyMem_RawCalloc(void *ctx, size_t nelem, size_t elsize)
 {
-#ifdef __COSMOPOLITAN__
-#ifdef __SANITIZE_ADDRESS__
-    return __asan_calloc(nelem, elsize);
-#else
-    return dlcalloc(nelem, elsize);
-#endif
-#else
     /* PyMem_RawCalloc(0, 0) means calloc(1, 1). Some systems would return NULL
        for calloc(0, 0), which would be treated as an error. Some platforms
        would return a pointer with no memory behind it, which would break
@@ -131,7 +115,6 @@ _PyMem_RawCalloc(void *ctx, size_t nelem, size_t elsize)
         elsize = 1;
     }
     return calloc(nelem, elsize);
-#endif
 }
 
 static inline void *
@@ -139,29 +122,13 @@ _PyMem_RawRealloc(void *ctx, void *ptr, size_t size)
 {
     if (size == 0)
         size = 1;
-#ifdef __COSMOPOLITAN__
-#ifdef __SANITIZE_ADDRESS__
-    return __asan_realloc(ptr, size);
-#else
-    return dlrealloc(ptr, size);
-#endif
-#else
     return realloc(ptr, size);
-#endif
 }
 
 static inline void
 _PyMem_RawFree(void *ctx, void *ptr)
 {
-#ifdef __COSMOPOLITAN__
-#ifdef __SANITIZE_ADDRESS__
-    __asan_free(ptr);
-#else
-    dlfree(ptr);
-#endif
-#else
     free(ptr);
-#endif
 }
 
 #ifdef MS_WINDOWS
@@ -1908,13 +1875,13 @@ bumpserialno(void)
 
 #define SST SIZEOF_SIZE_T
 
-static inline optimizespeed dontasan size_t
+static inline optimizespeed size_t
 read_size_t(const void *p)
 {
     return READ64BE(p);
 }
 
-static inline optimizespeed dontasan void
+static inline optimizespeed void
 write_size_t(void *p, size_t n)
 {
     WRITE64BE((char *)p, n);
@@ -1982,11 +1949,6 @@ _PyMem_DebugRawAlloc(int use_calloc, void *ctx, size_t nbytes)
     write_size_t(tail + SST, serialno);
     _PyMem_DebugCheckAddress(api->api_id, p+2*SST);
 
-    if (IsAsan()) {
-        __asan_poison((p + SST + 1), SST-1, kAsanHeapUnderrun);
-        __asan_poison(tail, SST, kAsanHeapOverrun);
-    }
-
     return p + 2*SST;
 }
 
@@ -2039,15 +2001,12 @@ _PyMem_DebugRawFree(void *ctx, void *p)
     nbytes = read_size_t(q);
     nbytes += 4*SST;
     if (nbytes > 0) {
-        if (IsAsan()) {
-            __asan_unpoison(q, nbytes);
-        }
         memset(q, DEADBYTE, nbytes);
     }
     api->alloc.free(api->alloc.ctx, q);
 }
 
-static dontasan void *
+static void *
 _PyMem_DebugRawRealloc(void *ctx, void *p, size_t nbytes)
 {
     _Static_assert(sizeof(size_t) == 8, "");
@@ -2079,14 +2038,9 @@ _PyMem_DebugRawRealloc(void *ctx, void *p, size_t nbytes)
     tail = q + nbytes;
     w = 0x0101010101010101ull * FORBIDDENBYTE;
     WRITE64LE(tail, w);
-    if (IsAsan()) __asan_poison(tail, SST, kAsanHeapOverrun);
     write_size_t(tail + SST, serialno);
     if (nbytes > original_nbytes) {
         /* growing:  mark new extra memory clean */
-        if (IsAsan()) {
-            __asan_unpoison((q + original_nbytes),
-                            nbytes - original_nbytes);
-        }
         memset(q + original_nbytes, CLEANBYTE,
                nbytes - original_nbytes);
     }
@@ -2136,7 +2090,7 @@ _PyMem_DebugRealloc(void *ctx, void *ptr, size_t nbytes)
  * and call Py_FatalError to kill the program.
  * The API id, is also checked.
  */
-static dontasan void
+static void
 _PyMem_DebugCheckAddress(char api, const void *p)
 {
     const uint8_t *q = (const uint8_t *)p;
@@ -2189,7 +2143,7 @@ error:
 }
 
 /* Display info to stderr about the memory block at p. */
-static dontasan void
+static void
 _PyObject_DebugDumpAddress(const void *p)
 {
     const uint8_t *q = (const uint8_t *)p;

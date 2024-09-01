@@ -16,11 +16,8 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/mem/hook.internal.h"
 #include "libc/mem/mem.h"
 #include "third_party/dlmalloc/dlmalloc.h"
-
-void *(*hook_malloc)(size_t) = dlmalloc;
 
 /**
  * Allocates uninitialized memory.
@@ -43,5 +40,5 @@ void *(*hook_malloc)(size_t) = dlmalloc;
  * @return new memory, or NULL w/ errno
  */
 void *malloc(size_t n) {
-  return hook_malloc(n);
+  return dlmalloc(n);
 }

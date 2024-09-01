@@ -101,23 +101,22 @@ XARGS ?= xargs -P4 -rs8000
 DOT ?= dot
 CLANG = clang
 TMPDIR = o/tmp
-AR = build/bootstrap/ar
-CP = build/bootstrap/cp
-RM = build/bootstrap/rm -f
-GZIP = build/bootstrap/gzip
-ECHO = build/bootstrap/echo
-CHMOD = build/bootstrap/chmod
-TOUCH = build/bootstrap/touch
-PKG = build/bootstrap/package
-MKDEPS = build/bootstrap/mkdeps
-ZIPOBJ = build/bootstrap/zipobj
-ZIPCOPY = build/bootstrap/zipcopy
-PECHECK = build/bootstrap/pecheck
-FIXUPOBJ = build/bootstrap/fixupobj
-MKDIR = build/bootstrap/mkdir -p
-COMPILE = build/bootstrap/compile -V9 -M2048m -P8192 $(QUOTA)
-
-IGNORE := $(shell $(MKDIR) $(TMPDIR))
+AR = $(BOOTSTRAP)/ar.ape
+CP = $(BOOTSTRAP)/cp.ape
+RM = $(BOOTSTRAP)/rm.ape -f
+GZIP = $(BOOTSTRAP)/gzip.ape
+ECHO = $(BOOTSTRAP)/echo.ape
+CHMOD = $(BOOTSTRAP)/chmod.ape
+TOUCH = $(BOOTSTRAP)/touch.ape
+PKG = $(BOOTSTRAP)/package.ape
+MKDEPS = $(BOOTSTRAP)/mkdeps
+ZIPOBJ = $(BOOTSTRAP)/zipobj
+ZIPCOPY = $(BOOTSTRAP)/zipcopy
+PECHECK = $(BOOTSTRAP)/pecheck
+FIXUPOBJ = $(BOOTSTRAP)/fixupobj
+OBJBINCOPY = $(BOOTSTRAP)/objbincopy
+MKDIR = $(BOOTSTRAP)/mkdir.ape -p
+COMPILE = $(BOOTSTRAP)/compile.ape -V9 -M2048m -P8192 $(QUOTA)
 
 # the default build modes is empty string
 # on x86_64 hosts, MODE= is the same as MODE=x86_64
@@ -140,7 +139,6 @@ HOSTS ?= freebsd rhel7 xnu openbsd netbsd win10
 endif
 
 ZIPOBJ_FLAGS += -a$(ARCH)
-IGNORE := $(shell $(MKDIR) $(TMPDIR))
 
 export ADDR2LINE
 export LC_ALL
@@ -149,9 +147,12 @@ export MODE
 export SOURCE_DATE_EPOCH
 export TMPDIR
 
-COSMOCC = .cosmocc/3.3.5
+COSMOCC = .cosmocc/3.8.0
+BOOTSTRAP = $(COSMOCC)/bin
 TOOLCHAIN = $(COSMOCC)/bin/$(ARCH)-linux-cosmo-
-DOWNLOAD := $(shell build/download-cosmocc.sh $(COSMOCC) 3.3.5 db78fd8d3f8706e9dff4be72bf71d37a3f12062f212f407e1c33bc4af3780dd0)
+DOWNLOAD := $(shell build/download-cosmocc.sh $(COSMOCC) 3.8.0 813c6b2f95062d2e0a845307a79505424cb98cb038e8013334f8a22e3b92a474)
+
+IGNORE := $(shell $(MKDIR) $(TMPDIR))
 
 AS = $(TOOLCHAIN)as
 CC = $(TOOLCHAIN)gcc
@@ -174,6 +175,7 @@ all:	o
 o:	o/$(MODE)
 o/$(MODE):			\
 	o/$(MODE)/ape		\
+	o/$(MODE)/ctl		\
 	o/$(MODE)/dsp		\
 	o/$(MODE)/net		\
 	o/$(MODE)/libc		\
@@ -285,14 +287,14 @@ include third_party/ncurses/BUILD.mk		# │
 include third_party/readline/BUILD.mk		# │
 include third_party/libunwind/BUILD.mk		# |
 include third_party/libcxxabi/BUILD.mk		# |
+include third_party/double-conversion/BUILD.mk	# │
+include ctl/BUILD.mk				# │
 include third_party/libcxx/BUILD.mk		# │
 include third_party/openmp/BUILD.mk		# │
-include third_party/double-conversion/BUILD.mk	# │
 include third_party/pcre/BUILD.mk		# │
 include third_party/less/BUILD.mk		# │
 include net/https/BUILD.mk			# │
-include third_party/regex/BUILD.mk		# │
-include third_party/bash/BUILD.mk		#─┘
+include third_party/regex/BUILD.mk		#─┘
 include third_party/tidy/BUILD.mk
 include tool/img/lib/BUILD.mk
 include tool/img/BUILD.mk
@@ -303,6 +305,7 @@ include tool/viz/lib/BUILD.mk
 include tool/args/BUILD.mk
 include test/math/BUILD.mk
 include test/posix/BUILD.mk
+include test/ctl/BUILD.mk
 include test/libcxx/BUILD.mk
 include test/tool/args/BUILD.mk
 include third_party/linenoise/BUILD.mk
@@ -366,7 +369,6 @@ include test/libc/fmt/BUILD.mk
 include test/libc/time/BUILD.mk
 include test/libc/proc/BUILD.mk
 include test/libc/stdio/BUILD.mk
-include test/libc/release/BUILD.mk
 include test/libc/BUILD.mk
 include test/net/http/BUILD.mk
 include test/net/https/BUILD.mk
@@ -436,6 +438,9 @@ loc: o/$(MODE)/tool/build/summy
 # PLEASE: MAINTAIN TOPOLOGICAL ORDER
 # FROM HIGHEST LEVEL TO LOWEST LEVEL
 COSMOPOLITAN_OBJECTS =			\
+	CTL				\
+	THIRD_PARTY_DOUBLECONVERSION	\
+	THIRD_PARTY_OPENMP		\
 	TOOL_ARGS			\
 	NET_HTTP			\
 	LIBC_SOCK			\
@@ -445,7 +450,6 @@ COSMOPOLITAN_OBJECTS =			\
 	THIRD_PARTY_GETOPT		\
 	LIBC_LOG			\
 	THIRD_PARTY_TZ			\
-	THIRD_PARTY_OPENMP		\
 	THIRD_PARTY_MUSL		\
 	THIRD_PARTY_ZLIB_GZ		\
 	THIRD_PARTY_LIBCXXABI		\
@@ -524,6 +528,7 @@ COSMOPOLITAN_H_PKGS =			\
 
 COSMOCC_PKGS =				\
 	$(COSMOPOLITAN_H_PKGS)		\
+	CTL				\
 	THIRD_PARTY_AARCH64		\
 	THIRD_PARTY_LIBCXX		\
 	THIRD_PARTY_LIBCXXABI		\
@@ -539,21 +544,12 @@ COSMOCC_HDRS =								\
 	$(foreach x,$(COSMOCC_PKGS),$($(x)_HDRS))			\
 	$(foreach x,$(COSMOCC_PKGS),$($(x)_INCS))
 
-o/cosmocc.h.txt: Makefile
+o/cosmocc.h.txt: Makefile libc $(MAKEFILES) $(call uniq,$(foreach x,$(HDRS) $(INCS),$(dir $(x)))) $(HDRS) $(INCS)
 	$(file >$@, $(call uniq,$(COSMOCC_HDRS)))
 
 COSMOPOLITAN_H_ROOT_HDRS =						\
 	libc/integral/normalize.inc					\
 	$(foreach x,$(COSMOPOLITAN_H_PKGS),$($(x)_HDRS))
-
-o/cosmopolitan.h.txt: Makefile
-	$(file >$@, $(call uniq,$(COSMOPOLITAN_H_ROOT_HDRS)))
-
-o/cosmopolitan.h: o/cosmopolitan.h.txt					\
-		$(wildcard libc/integral/*)				\
-		$(foreach x,$(COSMOPOLITAN_H_PKGS),$($(x)_HDRS))	\
-		$(foreach x,$(COSMOPOLITAN_H_PKGS),$($(x)_INCS))
-	@$(COMPILE) -AROLLUP -T$@ build/bootstrap/rollup @$< >>$@
 
 o/cosmopolitan.html: private .UNSANDBOXED = 1
 o/cosmopolitan.html:							\
@@ -576,7 +572,6 @@ $(SRCS):					\
 
 ifeq ($(ARCH), x86_64)
 TOOLCHAIN_ARTIFACTS =				\
-	o/cosmopolitan.h			\
 	o/$(MODE)/ape/ape.lds			\
 	o/$(MODE)/libc/crt/crt.o		\
 	o/$(MODE)/ape/ape.elf			\

@@ -20,7 +20,7 @@
 #include "dsp/core/ks8.h"
 #include "dsp/core/kss8.h"
 #include "dsp/scale/cdecimate2xuint8x8.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/nexgen32e/x86feature.h"
 #include "libc/str/str.h"
 #include "libc/x/x.h"
@@ -106,9 +106,9 @@ void *Magkern2xY(long ys, long xs, unsigned char p[ys][xs], long yn, long xn) {
   return p;
 }
 
-void *MagikarpY(long dys, long dxs, unsigned char d[restrict dys][dxs],
-                long sys, long sxs, const unsigned char s[sys][sxs], long yn,
-                long xn, const signed char K[8]) {
+void *MagikarpY(long dys, long dxs, unsigned char d[dys][dxs], long sys,
+                long sxs, const unsigned char s[sys][sxs], long yn, long xn,
+                const signed char K[8]) {
   long y, x;
   for (y = 0; y < yn; ++y) {
     for (x = 0; x < xn; ++x) {

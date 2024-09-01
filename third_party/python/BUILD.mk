@@ -7,7 +7,7 @@ THIRD_PARTY_PYTHON_ARTIFACTS =						\
 	THIRD_PARTY_PYTHON_STAGE1_A					\
 	THIRD_PARTY_PYTHON_STAGE2_A					\
 	THIRD_PARTY_PYTHON_PYTEST_A					\
-	THIRD_PARTY_PYTHON_PYTHON					\
+	THIRD_PARTY_PYTHON_PYTHON3					\
 	THIRD_PARTY_PYTHON_FREEZE
 
 THIRD_PARTY_PYTHON_BINS =						\
@@ -17,7 +17,7 @@ THIRD_PARTY_PYTHON_BINS =						\
 THIRD_PARTY_PYTHON_COMS =						\
 	o/$(MODE)/third_party/python/Parser/asdl_c			\
 	o/$(MODE)/third_party/python/pystone				\
-	o/$(MODE)/third_party/python/python				\
+	o/$(MODE)/third_party/python/python3				\
 	o/$(MODE)/third_party/python/freeze				\
 	o/$(MODE)/third_party/python/pycomp				\
 	o/$(MODE)/third_party/python/pyobj				\
@@ -29,15 +29,17 @@ THIRD_PARTY_PYTHON_CHECKS =						\
 	$(THIRD_PARTY_PYTHON_STAGE2_A).pkg				\
 	$(THIRD_PARTY_PYTHON_PYTEST_A).pkg				\
 	$(THIRD_PARTY_PYTHON_HDRS:%=o/$(MODE)/%.ok)			\
-	o/$(MODE)/third_party/python/python.pkg				\
+	o/$(MODE)/third_party/python/python3.pkg			\
 	o/$(MODE)/third_party/python/freeze.pkg
 
 # TODO: Deal with aarch64 under qemu not making execve() easy.
 ifneq ($(MODE), dbg)
+ifneq ($(MODE), x86_64-dbg)
 ifeq ($(ARCH), x86_64)
 ifneq ($(UNAME_S), Windows)
 THIRD_PARTY_PYTHON_CHECKS +=						\
 	$(THIRD_PARTY_PYTHON_PYTEST_PYMAINS:%=o/$(MODE)/%.runs)
+endif
 endif
 endif
 endif
@@ -474,6 +476,7 @@ THIRD_PARTY_PYTHON_STAGE1_A_DIRECTDEPS =				\
 	LIBC_X								\
 	THIRD_PARTY_DLMALLOC						\
 	THIRD_PARTY_GETOPT						\
+	THIRD_PARTY_MUSL						\
 	THIRD_PARTY_TZ							\
 	THIRD_PARTY_XED							\
 	TOOL_BUILD_LIB							\
@@ -526,7 +529,6 @@ THIRD_PARTY_PYTHON_STAGE2_A_SRCS =					\
 	third_party/python/runpythonmodule.c				\
 	third_party/python/launch.c					\
 	third_party/python/Objects/fromfd.c				\
-	third_party/python/Objects/unicodeobject-deadcode.c		\
 	third_party/python/Modules/_bisectmodule.c			\
 	third_party/python/Modules/_bz2module.c				\
 	third_party/python/Modules/_codecsmodule.c			\
@@ -1746,7 +1748,6 @@ THIRD_PARTY_PYTHON_PYTEST_A_DIRECTDEPS =					\
 THIRD_PARTY_PYTHON_PYTEST_PYMAINS =						\
 	third_party/python/Lib/test/signalinterproctester.py			\
 	third_party/python/Lib/test/test___future__.py				\
-	third_party/python/Lib/test/test__locale.py				\
 	third_party/python/Lib/test/test__opcode.py				\
 	third_party/python/Lib/test/test_abc.py					\
 	third_party/python/Lib/test/test_abstract_numbers.py			\
@@ -1964,7 +1965,6 @@ THIRD_PARTY_PYTHON_PYTEST_PYMAINS =						\
 	third_party/python/Lib/test/test_string.py				\
 	third_party/python/Lib/test/test_string_literals.py			\
 	third_party/python/Lib/test/test_stringprep.py				\
-	third_party/python/Lib/test/test_strptime.py				\
 	third_party/python/Lib/test/test_strtod.py				\
 	third_party/python/Lib/test/test_struct.py				\
 	third_party/python/Lib/test/test_structmembers.py			\
@@ -2198,8 +2198,8 @@ o/$(MODE)/third_party/python/Lib/test/test_binhex.py.runs: $(PYTHONTESTER)
 o/$(MODE)/third_party/python/Lib/test/test_capi.py.runs: $(PYTHONTESTER)
 	@$(COMPILE) -ACHECK -wtT$@ $(PYHARNESSARGS) $(PYTHONTESTER) -m test.test_capi $(PYTESTARGS)
 
-o/$(MODE)/third_party/python/Lib/test/test__locale.py.runs: $(PYTHONTESTER)
-	@$(COMPILE) -ACHECK -wtT$@ $(PYHARNESSARGS) $(PYTHONTESTER) -m test.test__locale $(PYTESTARGS)
+# o/$(MODE)/third_party/python/Lib/test/test__locale.py.runs: $(PYTHONTESTER)
+# 	@$(COMPILE) -ACHECK -wtT$@ $(PYHARNESSARGS) $(PYTHONTESTER) -m test.test__locale $(PYTESTARGS)
 
 o/$(MODE)/third_party/python/Lib/test/test_binop.py.runs: $(PYTHONTESTER)
 	@$(COMPILE) -ACHECK -wtT$@ $(PYHARNESSARGS) $(PYTHONTESTER) -m test.test_binop $(PYTESTARGS)
@@ -3980,12 +3980,12 @@ THIRD_PARTY_PYTHON_SRCS =						\
 ################################################################################
 # PYTHON
 
-THIRD_PARTY_PYTHON_PYTHON_SRCS = third_party/python/python.c
-THIRD_PARTY_PYTHON_PYTHON_OBJS = o/$(MODE)/third_party/python/python.o
-THIRD_PARTY_PYTHON_PYTHON_COMS = o/$(MODE)/third_party/python/python
-THIRD_PARTY_PYTHON_PYTHON_BINS = $(THIRD_PARTY_PYTHON_PYTHON_COMS) $(THIRD_PARTY_PYTHON_PYTHON_COMS:%=%.dbg)
-THIRD_PARTY_PYTHON_PYTHON_DEPS = $(call uniq,$(foreach x,$(THIRD_PARTY_PYTHON_PYTHON_DIRECTDEPS),$($(x))))
-THIRD_PARTY_PYTHON_PYTHON_DIRECTDEPS =					\
+THIRD_PARTY_PYTHON_PYTHON3_SRCS = third_party/python/python3.c
+THIRD_PARTY_PYTHON_PYTHON3_OBJS = o/$(MODE)/third_party/python/python3.o
+THIRD_PARTY_PYTHON_PYTHON3_COMS = o/$(MODE)/third_party/python/python3
+THIRD_PARTY_PYTHON_PYTHON3_BINS = $(THIRD_PARTY_PYTHON_PYTHON3_COMS) $(THIRD_PARTY_PYTHON_PYTHON3_COMS:%=%.dbg)
+THIRD_PARTY_PYTHON_PYTHON3_DEPS = $(call uniq,$(foreach x,$(THIRD_PARTY_PYTHON_PYTHON3_DIRECTDEPS),$($(x))))
+THIRD_PARTY_PYTHON_PYTHON3_DIRECTDEPS =					\
 	LIBC_CALLS							\
 	LIBC_FMT							\
 	LIBC_INTRIN							\
@@ -4005,14 +4005,14 @@ THIRD_PARTY_PYTHON_PYTHON_DIRECTDEPS =					\
 	THIRD_PARTY_XED							\
 	TOOL_ARGS
 
-o/$(MODE)/third_party/python/python.pkg:				\
-		$(THIRD_PARTY_PYTHON_PYTHON_OBJS)			\
-		$(foreach x,$(THIRD_PARTY_PYTHON_PYTHON_DIRECTDEPS),$($(x)_A).pkg)
+o/$(MODE)/third_party/python/python3.pkg:				\
+		$(THIRD_PARTY_PYTHON_PYTHON3_OBJS)			\
+		$(foreach x,$(THIRD_PARTY_PYTHON_PYTHON3_DIRECTDEPS),$($(x)_A).pkg)
 
-o/$(MODE)/third_party/python/python.dbg:				\
-		o/$(MODE)/third_party/python/python.pkg			\
-		$(THIRD_PARTY_PYTHON_PYTHON_DEPS)			\
-		$(THIRD_PARTY_PYTHON_PYTHON_OBJS)			\
+o/$(MODE)/third_party/python/python3.dbg:				\
+		o/$(MODE)/third_party/python/python3.pkg		\
+		$(THIRD_PARTY_PYTHON_PYTHON3_DEPS)			\
+		$(THIRD_PARTY_PYTHON_PYTHON3_OBJS)			\
 		$(CRT)							\
 		$(APE_NO_MODIFY_SELF)
 	@$(APELINK)

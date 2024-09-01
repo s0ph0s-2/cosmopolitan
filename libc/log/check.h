@@ -1,7 +1,7 @@
 #ifndef COSMOPOLITAN_LIBC_LOG_CHECK_H_
 #define COSMOPOLITAN_LIBC_LOG_CHECK_H_
 #include "libc/dce.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 COSMOPOLITAN_C_START_
 
 #define CHECK(X, ...)         __CHK(ne, !=, false, "false", !!(X), #X, "" __VA_ARGS__)
@@ -25,7 +25,7 @@ COSMOPOLITAN_C_START_
 
 #define CHECK_ALIGNED(BYTES, VAR, ...)                                \
   do {                                                                \
-    if (((uintptr_t)VAR & ((BYTES)-1u))) {                            \
+    if (((uintptr_t)VAR & ((BYTES) - 1u))) {                          \
       __check_fail_aligned(BYTES, (uintptr_t)VAR, __FILE__, __LINE__, \
                            "" __VA_ARGS__);                           \
       __builtin_unreachable();                                        \
@@ -35,7 +35,7 @@ COSMOPOLITAN_C_START_
 
 #define DCHECK_ALIGNED(BYTES, VAR, ...)                      \
   do {                                                       \
-    if (((uintptr_t)VAR & ((BYTES)-1u))) {                   \
+    if (((uintptr_t)VAR & ((BYTES) - 1u))) {                 \
       __DCHK_ALIGNED(BYTES, (uintptr_t)VAR, "" __VA_ARGS__); \
       __builtin_unreachable();                               \
     }                                                        \

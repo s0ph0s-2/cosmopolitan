@@ -13,6 +13,7 @@ LIBC_TESTLIB_A = o/$(MODE)/libc/testlib/testlib.a
 LIBC_TESTLIB_A_CHECKS = $(LIBC_TESTLIB_A).pkg
 
 LIBC_TESTLIB_A_ASSETS =						\
+	libc/testlib/blake2b256_tests.txt			\
 	libc/testlib/blocktronics.txt				\
 	libc/testlib/viewables.txt				\
 	libc/testlib/hyperion.txt				\
@@ -21,6 +22,7 @@ LIBC_TESTLIB_A_ASSETS =						\
 LIBC_TESTLIB_A_HDRS =						\
 	libc/testlib/aspect.internal.h				\
 	libc/testlib/bench.h					\
+	libc/testlib/benchmark.h				\
 	libc/testlib/blocktronics.h				\
 	libc/testlib/ezbench.h					\
 	libc/testlib/fastrandomstring.h				\
@@ -32,6 +34,7 @@ LIBC_TESTLIB_A_HDRS =						\
 
 LIBC_TESTLIB_A_SRCS_S =						\
 	libc/testlib/bench.S					\
+	libc/testlib/blake2b256_tests.S				\
 	libc/testlib/blocktronics.S				\
 	libc/testlib/fixture.S					\
 	libc/testlib/hyperion.S					\
@@ -124,6 +127,7 @@ $(LIBC_TESTLIB_A).pkg:						\
 		$(LIBC_TESTLIB_A_OBJS)				\
 		$(foreach x,$(LIBC_TESTLIB_A_DIRECTDEPS),$($(x)_A).pkg)
 
+o/$(MODE)/libc/testlib/blake2b256_tests.o: libc/testlib/blake2b256_tests.txt
 o/$(MODE)/libc/testlib/blocktronics.o: libc/testlib/blocktronics.txt
 o/$(MODE)/libc/testlib/viewables.o: libc/testlib/viewables.txt
 o/$(MODE)/libc/testlib/hyperion.o: libc/testlib/hyperion.txt
@@ -131,6 +135,8 @@ o/$(MODE)/libc/testlib/moby.o: libc/testlib/moby.txt
 
 # these assembly files are safe to build on aarch64
 o/$(MODE)/libc/testlib/bench.o: libc/testlib/bench.S
+	@$(COMPILE) -AOBJECTIFY.S $(OBJECTIFY.S) $(OUTPUT_OPTION) -c $<
+o/$(MODE)/libc/testlib/blake2b256_tests.o: libc/testlib/blake2b256_tests.S
 	@$(COMPILE) -AOBJECTIFY.S $(OBJECTIFY.S) $(OUTPUT_OPTION) -c $<
 o/$(MODE)/libc/testlib/blocktronics.o: libc/testlib/blocktronics.S
 	@$(COMPILE) -AOBJECTIFY.S $(OBJECTIFY.S) $(OUTPUT_OPTION) -c $<

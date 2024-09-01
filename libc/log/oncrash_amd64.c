@@ -31,18 +31,17 @@
 #include "libc/dce.h"
 #include "libc/errno.h"
 #include "libc/fmt/itoa.h"
-#include "libc/intrin/asan.internal.h"
 #include "libc/intrin/atomic.h"
-#include "libc/intrin/describebacktrace.internal.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describebacktrace.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/intrin/kprintf.h"
-#include "libc/intrin/strace.internal.h"
+#include "libc/intrin/strace.h"
 #include "libc/intrin/weaken.h"
 #include "libc/log/backtrace.internal.h"
 #include "libc/log/gdb.h"
 #include "libc/log/internal.h"
 #include "libc/log/log.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/math.h"
 #include "libc/mem/alloca.h"
 #include "libc/nexgen32e/stackframe.h"
@@ -188,9 +187,9 @@ relegated static char *ShowSseRegisters(char *p, ucontext_t *ctx) {
   return p;
 }
 
-void ShowCrashReportHook(int, int, int, struct siginfo *, ucontext_t *);
+void ShowCrashReportHook(int, int, int, siginfo_t *, ucontext_t *);
 
-static relegated void ShowCrashReport(int err, int sig, struct siginfo *si,
+static relegated void ShowCrashReport(int err, int sig, siginfo_t *si,
                                       ucontext_t *ctx) {
 #pragma GCC push_options
 #pragma GCC diagnostic ignored "-Walloca-larger-than="
@@ -242,15 +241,10 @@ static relegated void ShowCrashReport(int err, int sig, struct siginfo *si,
     klog(buf, p - buf);
   }
   kprintf("\n");
-  if (!IsWindows()) {
-    __print_maps();
-  }
-  /* PrintSystemMappings(2); */
-  if (__argv) {
-    for (i = 0; i < __argc; ++i) {
+  __print_maps(15);
+  if (__argv)
+    for (i = 0; i < __argc; ++i)
       kprintf("%s ", __argv[i]);
-    }
-  }
   kprintf("\n");
 }
 
@@ -267,15 +261,34 @@ static inline void SpinUnlock(atomic_uint *lock) {
   atomic_store_explicit(lock, 0, memory_order_release);
 }
 
-relegated void __oncrash(int sig, struct siginfo *si, void *arg) {
+relegated void __oncrash(int sig, siginfo_t *si, void *arg) {
   static atomic_uint lock;
+  ftrace_enabled(-1);
+  strace_enabled(-1);
   BLOCK_CANCELATION;
   SpinLock(&lock);
   int err = errno;
   __restore_tty();
   ShowCrashReport(err, sig, si, arg);
+
+  // ensure execution doesn't resume for anything but SIGTRAP / SIGQUIT
+  if (arg && sig != SIGTRAP && sig != SIGQUIT) {
+    if (!IsXnu()) {
+      sigaddset(&((ucontext_t *)arg)->uc_sigmask, sig);
+    } else {
+      sigdelset(&((ucontext_t *)arg)->uc_sigmask, sig);
+      struct sigaction sa;
+      sigemptyset(&sa.sa_mask);
+      sa.sa_handler = SIG_DFL;
+      sa.sa_flags = 0;
+      sigaction(sig, &sa, 0);
+    }
+  }
+
   SpinUnlock(&lock);
   ALLOW_CANCELATION;
+  strace_enabled(+1);
+  ftrace_enabled(+1);
 }
 
 #endif /* __x86_64__ */

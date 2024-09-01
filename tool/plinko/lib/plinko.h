@@ -9,7 +9,7 @@ COSMOPOLITAN_C_START_
 
 #define LO(x)      (int)(x)
 #define HI(x)      (int)((x) >> 32)
-#define MASK(x)    ((x)-1u)
+#define MASK(x)    ((x) - 1u)
 #define ROR(x, k)  ((unsigned)(x) >> k | ((unsigned)(x) << (32 - k)))
 #define MAKE(l, h) (((unsigned)(l)) | (dword)(h) << 32)
 #define SHAD(i)    g_dispatch[(i) & (BANE | MASK(BANE))]
@@ -311,8 +311,10 @@ forceinline struct T Ret(dword ea, dword tm, dword r) {
 }
 
 static inline int FasterRecurse(int v, int a, dword p1, dword p2) {
-  if (v == LO(p1)) return HI(p1);
-  if (v == LO(p2)) return HI(p2);
+  if (v == LO(p1))
+    return HI(p1);
+  if (v == LO(p2))
+    return HI(p2);
   /* if (IsPrecious(v)) return v; */
   /* if (v < 0 && Car(v) == kQuote) return Car(Cdr(v)); */
   return recurse(MAKE(v, a), p1, p2);

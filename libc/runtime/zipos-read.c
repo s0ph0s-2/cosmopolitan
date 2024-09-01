@@ -27,23 +27,21 @@
 #include "libc/sysv/consts/s.h"
 #include "libc/sysv/errfuns.h"
 #include "libc/thread/tls.h"
-#include "libc/zip.internal.h"
+#include "libc/zip.h"
 
 static ssize_t __zipos_read_impl(struct ZiposHandle *h, const struct iovec *iov,
                                  size_t iovlen, ssize_t opt_offset) {
   int i;
   int64_t b, x, y, start_pos;
   if (h->cfile == ZIPOS_SYNTHETIC_DIRECTORY ||
-      S_ISDIR(GetZipCfileMode(h->zipos->map + h->cfile))) {
+      S_ISDIR(GetZipCfileMode(h->zipos->map + h->cfile)))
     return eisdir();
-  }
   if (opt_offset == -1) {
   Restart:
     start_pos = atomic_load_explicit(&h->pos, memory_order_relaxed);
     do {
-      if (UNLIKELY(start_pos == SIZE_MAX)) {
+      if (UNLIKELY(start_pos == SIZE_MAX))
         goto Restart;
-      }
     } while (!LIKELY(atomic_compare_exchange_weak_explicit(
         &h->pos, &start_pos, SIZE_MAX, memory_order_acquire,
         memory_order_relaxed)));

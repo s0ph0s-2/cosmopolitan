@@ -25,10 +25,11 @@
 #include "libc/elf/struct/shdr.h"
 #include "libc/fmt/conv.h"
 #include "libc/fmt/itoa.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/intrin/dll.h"
+#include "libc/intrin/kprintf.h"
 #include "libc/limits.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/mem/mem.h"
 #include "libc/nt/pedef.internal.h"
 #include "libc/nt/struct/imagedatadirectory.internal.h"
@@ -158,6 +159,7 @@ static const char *stubpath;
 static long FLAG_SizeOfStackCommit = 64 * 1024;
 static long FLAG_SizeOfStackReserve = 8 * 1024 * 1024;
 
+#define TINYMALLOC_MAX_ALIGN MAX_ALIGN
 #include "libc/mem/tinymalloc.inc"
 
 static wontreturn void Die(const char *thing, const char *reason) {
@@ -182,6 +184,13 @@ static wontreturn void DieOom(void) {
 static void *Calloc(size_t n) {
   void *p;
   if (!(p = calloc(1, n)))
+    DieOom();
+  return p;
+}
+
+static void *Memalign(size_t a, size_t n) {
+  void *p;
+  if (!(p = memalign(a, n)))
     DieOom();
   return p;
 }
@@ -218,6 +227,17 @@ static struct Segment *NewSegment(void) {
   s = Calloc(sizeof(struct Segment));
   dll_init(&s->elem);
   return s;
+}
+
+static int ConvertElfMachineToPe(struct Elf *elf) {
+  switch (elf->ehdr->e_machine) {
+    case EM_NEXGEN32E:
+      return kNtImageFileMachineNexgen32e;
+    case EM_AARCH64:
+      return kNtImageFileMachineArm64;
+    default:
+      Die(elf->path, "unsupported e_machine");
+  }
 }
 
 static Elf64_Addr RelocateVaddrWithinSegment(struct Elf *elf,
@@ -802,7 +822,17 @@ static uint32_t GetPeSectionCharacteristics(struct Segment *s) {
 // originally in the elf image that ld linked. in order for this to work
 // the executable needs to be linked in `ld -q` mode, since it'll retain
 // the .rela sections we'll need later to fixup the binary.
-static struct ImagePointer GeneratePe(struct Elf *elf, char *fp, int64_t vp) {
+static struct ImagePointer GeneratePe(struct Elf *elf, char *fp) {
+
+  int64_t vp = 0;
+  Elf64_Phdr *phdr;
+  for (int i = 0; i < elf->ehdr->e_phnum; ++i) {
+    if ((phdr = GetElfProgramHeaderAddress(elf->ehdr, elf->size, i)) &&
+        phdr->p_type == PT_LOAD) {
+      vp = phdr->p_vaddr;
+      break;
+    }
+  }
 
   Elf64_Sym *entry;
   if (!(entry = FindGlobal(elf, "__win32_start")) &&
@@ -846,7 +876,7 @@ static struct ImagePointer GeneratePe(struct Elf *elf, char *fp, int64_t vp) {
   struct NtImageFileHeader *filehdr;
   filehdr = (struct NtImageFileHeader *)fp;
   fp += sizeof(struct NtImageFileHeader);
-  filehdr->Machine = kNtImageFileMachineNexgen32e;
+  filehdr->Machine = ConvertElfMachineToPe(elf);
   filehdr->TimeDateStamp = 1690072024;
   filehdr->Characteristics =
       kNtPeFileExecutableImage | kNtImageFileLargeAddressAware |
@@ -864,7 +894,9 @@ static struct ImagePointer GeneratePe(struct Elf *elf, char *fp, int64_t vp) {
   opthdr->FileAlignment = 512;
   opthdr->SectionAlignment = MAX(4096, elf->align);
   opthdr->MajorOperatingSystemVersion = 6;
+  opthdr->MinorOperatingSystemVersion = 2;
   opthdr->MajorSubsystemVersion = 6;
+  opthdr->MinorSubsystemVersion = 2;
   opthdr->Subsystem = kNtImageSubsystemWindowsCui;
   opthdr->DllCharacteristics = kNtImageDllcharacteristicsNxCompat |
                                kNtImageDllcharacteristicsHighEntropyVa;
@@ -1106,8 +1138,8 @@ int main(int argc, char *argv[]) {
   GetOpts(argc, argv);
   // translate executable
   struct Elf *elf = OpenElf(argv[optind]);
-  char *buf = memalign(MAX_ALIGN, 134217728);
-  struct ImagePointer ip = GeneratePe(elf, buf, 0x00400000);
+  char *buf = Memalign(MAX_ALIGN, 134217728);
+  struct ImagePointer ip = GeneratePe(elf, buf);
   if (creat(outpath, 0755) == -1)
     DieSys(elf->path);
   Pwrite(3, buf, ip.fp - buf, 0);

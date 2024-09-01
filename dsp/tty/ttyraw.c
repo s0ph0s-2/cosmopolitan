@@ -24,7 +24,7 @@
 #include "libc/calls/termios.h"
 #include "libc/calls/ucontext.h"
 #include "libc/log/log.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/mem/gc.h"
 #include "libc/runtime/runtime.h"
 #include "libc/str/str.h"
@@ -87,7 +87,7 @@ static textexit void ttyraw_onexit(void) {
   ttyraw_disable();
 }
 
-static relegated void ttyraw_onsig(int sig, struct siginfo *info,
+static relegated void ttyraw_onsig(int sig, siginfo_t *info,
                                    struct ucontext *ctx) {
   size_t i;
   if (g_ttyraw.noreentry)

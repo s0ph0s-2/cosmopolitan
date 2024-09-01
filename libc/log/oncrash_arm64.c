@@ -33,14 +33,15 @@
 #include "libc/calls/ucontext.h"
 #include "libc/cosmo.h"
 #include "libc/cxxabi.h"
+#include "libc/dce.h"
 #include "libc/errno.h"
 #include "libc/intrin/atomic.h"
-#include "libc/intrin/describebacktrace.internal.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describebacktrace.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/intrin/kprintf.h"
 #include "libc/log/internal.h"
 #include "libc/log/log.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/nexgen32e/stackframe.h"
 #include "libc/runtime/memtrack.internal.h"
 #include "libc/runtime/runtime.h"
@@ -189,8 +190,7 @@ static relegated char *GetSymbolName(struct SymbolTable *st, int symbol) {
   return buf;
 }
 
-static relegated void __oncrash_impl(int sig, struct siginfo *si,
-                                     ucontext_t *ctx) {
+static relegated void __oncrash_impl(int sig, siginfo_t *si, ucontext_t *ctx) {
 #pragma GCC push_options
 #pragma GCC diagnostic ignored "-Walloca-larger-than="
   long size = __get_safe_size(10000, 4096);
@@ -212,8 +212,6 @@ static relegated void __oncrash_impl(int sig, struct siginfo *si,
   struct utsname names = {0};
   struct Buffer b[1] = {{buf, size}};
   b->p[b->i++] = '\n';
-  ftrace_enabled(-1);
-  strace_enabled(-1);
   __restore_tty();
   uname(&names);
   gethostname(host, sizeof(host));
@@ -268,7 +266,8 @@ static relegated void __oncrash_impl(int sig, struct siginfo *si,
         if (j)
           Append(b, " ");
         Append(b, "%s%016lx%s x%d%s", ColorRegister(r),
-               ctx->uc_mcontext.regs[r], reset, r, r == 8 || r == 9 ? " " : "");
+               ((uint64_t *)ctx->uc_mcontext.regs)[r], reset, r,
+               r == 8 || r == 9 ? " " : "");
       }
       Append(b, "\n");
     }
@@ -389,13 +388,38 @@ static inline void SpinUnlock(atomic_uint *lock) {
   atomic_store_explicit(lock, 0, memory_order_release);
 }
 
-relegated void __oncrash(int sig, struct siginfo *si, void *arg) {
+relegated void __oncrash(int sig, siginfo_t *si, void *arg) {
   static atomic_uint lock;
+  ftrace_enabled(-1);
+  strace_enabled(-1);
   BLOCK_CANCELATION;
   SpinLock(&lock);
   __oncrash_impl(sig, si, arg);
+
+  // unlike amd64, the instruction pointer on arm64 isn't advanced past
+  // the debugger breakpoint instruction automatically. we need this so
+  // execution can resume after __builtin_trap().
+  if (arg && sig == SIGTRAP)
+    ((ucontext_t *)arg)->uc_mcontext.PC += 4;
+
+  // ensure execution doesn't resume for anything but SIGTRAP / SIGQUIT
+  if (arg && sig != SIGTRAP && sig != SIGQUIT) {
+    if (!IsXnu()) {
+      sigaddset(&((ucontext_t *)arg)->uc_sigmask, sig);
+    } else {
+      sigdelset(&((ucontext_t *)arg)->uc_sigmask, sig);
+      struct sigaction sa;
+      sigemptyset(&sa.sa_mask);
+      sa.sa_handler = SIG_DFL;
+      sa.sa_flags = 0;
+      sigaction(sig, &sa, 0);
+    }
+  }
+
   SpinUnlock(&lock);
   ALLOW_CANCELATION;
+  strace_enabled(+1);
+  ftrace_enabled(+1);
 }
 
 #endif /* __aarch64__ */

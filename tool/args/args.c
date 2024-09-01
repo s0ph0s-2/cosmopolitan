@@ -16,7 +16,6 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "tool/args/args.h"
 #include "libc/assert.h"
 #include "libc/calls/calls.h"
 #include "libc/errno.h"
@@ -92,12 +91,11 @@ int LoadZipArgsImpl(int *argc, char ***argv, char *data) {
       start = 0;
     }
 
-    if (!founddots)
-    {
-        founddots = true;
-        for (i = 1; i < *argc; ++i) {
-          AddZipArg(&n, &args, (*argv)[i]);
-        }
+    if (!founddots) {
+      founddots = true;
+      for (i = 1; i < *argc; ++i) {
+        AddZipArg(&n, &args, (*argv)[i]);
+      }
     }
 
     if (founddots || *argc <= 1) {

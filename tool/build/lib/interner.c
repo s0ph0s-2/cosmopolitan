@@ -17,7 +17,7 @@
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "tool/build/lib/interner.h"
-#include "libc/intrin/safemacros.internal.h"
+#include "libc/intrin/safemacros.h"
 #include "libc/mem/mem.h"
 #include "libc/nexgen32e/crc32.h"
 #include "libc/runtime/runtime.h"
@@ -33,7 +33,7 @@ struct InternerObject {
   struct InternerHash {
     unsigned hash; /* 0 means empty */
     unsigned index;
-  } * p;
+  } *p;
 };
 
 static void rehash(struct InternerObject *it) {

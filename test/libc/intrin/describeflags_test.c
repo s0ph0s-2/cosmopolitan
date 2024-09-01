@@ -16,8 +16,8 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/intrin/describeflags.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/intrin/describeflags.h"
+#include "libc/macros.h"
 #include "libc/testlib/testlib.h"
 
 static const struct DescribeFlags kFlags[] = {
@@ -27,7 +27,7 @@ static const struct DescribeFlags kFlags[] = {
 
 const char *DescribeIt(uint32_t x) {
   static char s[64];
-  return DescribeFlags(s, ARRAYLEN(s), kFlags, ARRAYLEN(kFlags), "x", x);
+  return _DescribeFlags(s, ARRAYLEN(s), kFlags, ARRAYLEN(kFlags), "x", x);
 }
 
 TEST(describeflags, test) {

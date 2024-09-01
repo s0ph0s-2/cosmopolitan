@@ -27,12 +27,12 @@
 #include "libc/calls/ttydefaults.h"
 #include "libc/dce.h"
 #include "libc/errno.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/intrin/kprintf.h"
-#include "libc/intrin/promises.internal.h"
-#include "libc/intrin/strace.internal.h"
+#include "libc/intrin/promises.h"
+#include "libc/intrin/strace.h"
 #include "libc/limits.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/nexgen32e/cpuid4.internal.h"
 #include "libc/nexgen32e/kcpuids.h"
 #include "libc/nexgen32e/x86feature.h"
@@ -43,7 +43,6 @@
 #include "libc/nt/startupinfo.h"
 #include "libc/nt/struct/ldrdatatableentry.h"
 #include "libc/nt/struct/startupinfo.h"
-#include "libc/nt/struct/teb.h"
 #include "libc/runtime/clktck.h"
 #include "libc/runtime/internal.h"
 #include "libc/runtime/memtrack.internal.h"
@@ -81,19 +80,6 @@ static const char *FindNameById(const struct IdName *names, unsigned long id) {
     }
   }
   return NULL;
-}
-
-static void PrintDependencies(const char *prologue) {
-#ifdef __x86_64__
-  struct NtLinkedList *head = &NtGetPeb()->Ldr->InLoadOrderModuleList;
-  struct NtLinkedList *ldr = head->Next;
-  do {
-    const struct NtLdrDataTableEntry *dll =
-        (const struct NtLdrDataTableEntry *)ldr;
-    PRINT(" ☼ %.*!hs (%'zukb @ %p)", dll->FullDllName.Length,
-          dll->FullDllName.Data, dll->SizeOfImage / 1024, dll->DllBase);
-  } while ((ldr = ldr->Next) && ldr != head);
-#endif
 }
 
 static void Print(const char *prologue) {
@@ -320,7 +306,7 @@ textstartup void __printargs(const char *prologue) {
       if (i && (u.pfds[i].revents & POLLNVAL))
         continue;
       PRINT(" ☼ %d (revents=%#hx fcntl(F_GETFL)=%s isatty()=%hhhd)", i,
-            u.pfds[i].revents, (DescribeOpenFlags)(oflagbuf, fcntl(i, F_GETFL)),
+            u.pfds[i].revents, _DescribeOpenFlags(oflagbuf, fcntl(i, F_GETFL)),
             isatty(i));
     }
   } else {
@@ -389,7 +375,7 @@ textstartup void __printargs(const char *prologue) {
         rlim.rlim_cur = -1;
       if (rlim.rlim_max == RLIM_INFINITY)
         rlim.rlim_max = -1;
-      PRINT(" ☼ %-20s %,16ld %,16ld", (DescribeRlimitName)(buf, i),
+      PRINT(" ☼ %-20s %,16ld %,16ld", _DescribeRlimitName(buf, i),
             rlim.rlim_cur, rlim.rlim_max);
       gotsome = true;
     }
@@ -478,16 +464,11 @@ textstartup void __printargs(const char *prologue) {
   PRINT(" ☼ %s = %#s", "GetProgramExecutableName", GetProgramExecutableName());
   PRINT(" ☼ %s = %#s", "GetInterpreterExecutableName",
         GetInterpreterExecutableName(u.path, sizeof(u.path)));
-  PRINT(" ☼ %s = %p", "GetStackSize()", GetStackSize());
-  PRINT(" ☼ %s = %p", "GetGuardSize()", GetGuardSize());
-  PRINT(" ☼ %s = %p", "GetStackAddr()", GetStackAddr());
-  PRINT(" ☼ %s = %p", "GetStaticStackSize()", GetStaticStackSize());
-  PRINT(" ☼ %s = %p", "GetStaticStackAddr(0)", GetStaticStackAddr(0));
   PRINT(" ☼ %s = %p", "__builtin_frame_address(0)", __builtin_frame_address(0));
 
   PRINT("");
   PRINT("MEMTRACK");
-  __print_maps();
+  __print_maps(0);
 
   PRINT("");
   PRINT("TERMIOS");
@@ -693,29 +674,6 @@ textstartup void __printargs(const char *prologue) {
           GetStdHandle(kNtStdErrorHandle));
     if (GetConsoleMode(GetStdHandle(kNtStdErrorHandle), &cm))
       PRINT("   %s", DescribeNtConsoleOutFlags(cm));
-
-#ifdef __x86_64__
-    PRINT("");
-    PRINT("TEB");
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x00, "NtGetSeh()", _NtGetSeh());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x08, "NtGetStackHigh()", _NtGetStackHigh());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x10, "NtGetStackLow()", _NtGetStackLow());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x18, "_NtGetSubsystemTib()",
-          _NtGetSubsystemTib());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x20, "NtGetFib()", _NtGetFib());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x30, "NtGetTeb()", NtGetTeb());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x38, "NtGetEnv()", _NtGetEnv());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x40, "NtGetPid()", NtGetPid());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x48, "NtGetTid()", NtGetTid());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x50, "NtGetRpc()", _NtGetRpc());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x58, "NtGetTls()", _NtGetTls());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x60, "NtGetPeb()", NtGetPeb());
-    PRINT(" ☼ gs:0x%02x %s = %p", 0x68, "NtGetErr()", NtGetErr());
-#endif
-
-    PRINT("");
-    PRINT("DEPENDENCIES");
-    PrintDependencies(prologue);
   }
 
   PRINT("");

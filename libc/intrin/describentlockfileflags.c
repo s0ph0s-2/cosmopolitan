@@ -16,8 +16,8 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/intrin/describeflags.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/intrin/describeflags.h"
+#include "libc/macros.h"
 #include "libc/nt/enum/filelockflags.h"
 
 static const struct DescribeFlags kNtLockFileFlags[] = {
@@ -25,7 +25,7 @@ static const struct DescribeFlags kNtLockFileFlags[] = {
     {kNtLockfileExclusiveLock, "ExclusiveLock"},      //
 };
 
-const char *(DescribeNtLockFileFlags)(char buf[64], uint32_t x) {
-  return DescribeFlags(buf, 64, kNtLockFileFlags, ARRAYLEN(kNtLockFileFlags),
-                       "kNtLockfile", x);
+const char *_DescribeNtLockFileFlags(char buf[64], uint32_t x) {
+  return _DescribeFlags(buf, 64, kNtLockFileFlags, ARRAYLEN(kNtLockFileFlags),
+                        "kNtLockfile", x);
 }

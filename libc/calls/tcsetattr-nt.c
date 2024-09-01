@@ -18,14 +18,13 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/assert.h"
 #include "libc/calls/internal.h"
-#include "libc/calls/struct/fd.internal.h"
+#include "libc/intrin/fds.h"
 #include "libc/calls/struct/termios.h"
 #include "libc/calls/syscall-nt.internal.h"
 #include "libc/calls/ttydefaults.h"
-#include "libc/intrin/nomultics.internal.h"
+#include "libc/intrin/nomultics.h"
 #include "libc/nt/console.h"
 #include "libc/nt/enum/consolemodeflags.h"
-#include "libc/nt/version.h"
 #include "libc/str/str.h"
 #include "libc/sysv/consts/baud.internal.h"
 #include "libc/sysv/consts/termios.h"
@@ -96,9 +95,7 @@ textwindows int tcsetattr_nt(int fd, int opt, const struct termios *tio) {
   if (!(tio->c_oflag & ONLCR)) {
     outmode |= kNtDisableNewlineAutoReturn;
   }
-  if (IsAtLeastWindows10()) {
-    outmode |= kNtEnableVirtualTerminalProcessing;
-  }
+  outmode |= kNtEnableVirtualTerminalProcessing;
 
   // tune the win32 configuration
   unassert(SetConsoleMode(hInput, inmode));

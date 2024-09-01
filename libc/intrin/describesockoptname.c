@@ -18,14 +18,14 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/fmt/itoa.h"
 #include "libc/fmt/magnumstrs.internal.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/str/str.h"
 #include "libc/sysv/consts/sol.h"
 
 /**
  * Describes setsockopt() optname arguments.
  */
-const char *(DescribeSockOptname)(char buf[32], int l, int x) {
+const char *_DescribeSockOptname(char buf[32], int l, int x) {
   char *p;
   const char *s;
   const struct MagnumStr *ms;

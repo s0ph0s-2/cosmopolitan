@@ -27,7 +27,7 @@
 #include "libc/calls/struct/ucontext-openbsd.internal.h"
 #include "libc/calls/ucontext.h"
 #include "libc/log/libfatal.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/runtime/runtime.h"
 #include "libc/runtime/stack.h"
 #include "libc/str/str.h"
@@ -41,7 +41,7 @@ privileged void __sigenter_openbsd(int sig, struct siginfo_openbsd *openbsdinfo,
 #pragma GCC diagnostic ignored "-Wframe-larger-than="
   struct Goodies {
     ucontext_t uc;
-    struct siginfo si;
+    siginfo_t si;
   } g;
   CheckLargeStackAllocation(&g, sizeof(g));
 #pragma GCC pop_options

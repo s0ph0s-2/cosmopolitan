@@ -16,11 +16,8 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/mem/hook.internal.h"
 #include "libc/mem/mem.h"
 #include "third_party/dlmalloc/dlmalloc.h"
-
-void *(*hook_calloc)(size_t, size_t) = dlcalloc;
 
 /**
  * Allocates n * itemsize bytes, initialized to zero.
@@ -32,5 +29,6 @@ void *(*hook_calloc)(size_t, size_t) = dlcalloc;
  * @see dlcalloc()
  */
 void *calloc(size_t n, size_t itemsize) {
-  return hook_calloc(n, itemsize);
+  return dlcalloc(n, itemsize);
 }
+

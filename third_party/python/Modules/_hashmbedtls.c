@@ -18,7 +18,7 @@
 #define PY_SSIZE_T_CLEAN
 #include "libc/calls/calls.h"
 #include "libc/log/backtrace.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/runtime/runtime.h"
 #include "libc/stdio/stdio.h"
 #include "libc/str/str.h"
@@ -32,6 +32,7 @@
 #include "third_party/python/Include/pystrhex.h"
 #include "third_party/python/Include/structmember.h"
 #include "third_party/python/Include/yoink.h"
+#include "libc/ctype.h"
 #include "third_party/python/Modules/hashlib.h"
 
 PYTHON_PROVIDE("_hashlib");

@@ -19,11 +19,11 @@
 #include "libc/dce.h"
 #include "libc/errno.h"
 #include "libc/fmt/conv.h"
-#include "libc/intrin/safemacros.internal.h"
+#include "libc/intrin/safemacros.h"
 #include "libc/inttypes.h"
 #include "libc/log/check.h"
 #include "libc/log/log.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/math.h"
 #include "libc/mem/arraylist2.internal.h"
 #include "libc/mem/mem.h"
@@ -47,7 +47,7 @@
 #include "libc/time.h"
 #include "libc/x/xasprintf.h"
 #include "libc/x/xsigaction.h"
-#include "libc/zip.internal.h"
+#include "libc/zip.h"
 #include "third_party/getopt/getopt.internal.h"
 #include "third_party/libcxx/vector"
 #include "tool/viz/lib/knobs.h"
@@ -137,7 +137,7 @@ struct Action {
 
 struct Audio {
   size_t i;
-  int16_t p[FRAMESIZE];
+  int16_t p[65536];
 };
 
 struct Status {

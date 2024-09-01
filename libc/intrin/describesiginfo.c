@@ -19,8 +19,7 @@
 #include "libc/calls/struct/siginfo.h"
 #include "libc/calls/struct/siginfo.internal.h"
 #include "libc/dce.h"
-#include "libc/intrin/asan.internal.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/intrin/kprintf.h"
 #include "libc/intrin/weaken.h"
 #include "libc/str/str.h"
@@ -30,15 +29,14 @@
 
 #define append(...) i += ksnprintf(buf + i, N - i, __VA_ARGS__)
 
-const char *(DescribeSiginfo)(char buf[N], int rc, const siginfo_t *si) {
+const char *_DescribeSiginfo(char buf[N], int rc, const siginfo_t *si) {
   int i = 0;
 
   if (rc == -1)
     return "n/a";
   if (!si)
     return "NULL";
-  if ((!IsAsan() && kisdangerous(si)) ||
-      (IsAsan() && !__asan_is_valid(si, sizeof(*si)))) {
+  if (kisdangerous(si)) {
     ksnprintf(buf, N, "%p", si);
     return buf;
   }

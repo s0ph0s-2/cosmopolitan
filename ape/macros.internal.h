@@ -18,7 +18,7 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #ifndef APE_MACROS_H_
 #define APE_MACROS_H_
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #ifdef __ASSEMBLER__
 /* clang-format off */
 
@@ -84,9 +84,10 @@
 /* clang-format on */
 #elif defined(__LINKER__)
 
-#define BCX_NIBBLE(X) ((((X)&0xf) > 0x9) ? ((X)&0xf) + 0x37 : ((X)&0xf) + 0x30)
-#define BCX_OCTET(X)  ((BCX_NIBBLE((X) >> 4) << 8) | (BCX_NIBBLE((X) >> 0) << 0))
-#define BCX_INT16(X)  ((BCX_OCTET((X) >> 8) << 16) | (BCX_OCTET((X) >> 0) << 0))
+#define BCX_NIBBLE(X) \
+  ((((X) & 0xf) > 0x9) ? ((X) & 0xf) + 0x37 : ((X) & 0xf) + 0x30)
+#define BCX_OCTET(X) ((BCX_NIBBLE((X) >> 4) << 8) | (BCX_NIBBLE((X) >> 0) << 0))
+#define BCX_INT16(X) ((BCX_OCTET((X) >> 8) << 16) | (BCX_OCTET((X) >> 0) << 0))
 #define BCXSTUB(SYM, X)                      \
   HIDDEN(SYM##_bcx0 = BCX_INT16((X) >> 48)); \
   HIDDEN(SYM##_bcx1 = BCX_INT16((X) >> 32)); \
@@ -98,12 +99,12 @@
  *
  * <p>This allows linker scripts to generate printf commands.
  */
-#define BCO_OCTET(X) (((X)&0x7) + 0x30)
+#define BCO_OCTET(X) (((X) & 0x7) + 0x30)
 #define BCOB_UNIT(X)                                           \
   ((BCO_OCTET((X) >> 0) << 24) | (BCO_OCTET((X) >> 3) << 16) | \
-   (BCO_OCTET(((X)&0xff) >> 6) << 8) | 0x5c)
+   (BCO_OCTET(((X) & 0xff) >> 6) << 8) | 0x5c)
 
-#define PFBYTE(SYM, X, I) HIDDEN(SYM##_bcs##I = BCOB_UNIT((X) >> ((I)*8)))
+#define PFBYTE(SYM, X, I) HIDDEN(SYM##_bcs##I = BCOB_UNIT((X) >> ((I) * 8)))
 #define PFSTUB2(SYM, X) \
   HIDDEN(SYM = (X));    \
   PFBYTE(SYM, X, 0);    \
@@ -140,23 +141,16 @@
    : (X) < 10000000  ? BCD_RIGHT(BCD_SMEAR((X) / 1000))  \
    : (X) < 100000000 ? BCD_RIGHT(BCD_SMEAR((X) / 10000)) \
                      : 0xffffffffffffffff)
-#define BCD_RIGHT(X) \
-  (((X)) < 10000     ? 0x20202020                  \
-   : (X) < 100000    ? 0x20202030 +                \
-                       (X) % 10                    \
-   : (X) < 1000000   ? 0x20203030 +                \
-                       ((X) / 10) % 10 +           \
-                       (X) % 10 * 0x100            \
-   : (X) < 10000000  ? 0x20303030 +                \
-                       ((X) / 100) % 10 +          \
-                       ((X) / 10) % 10 * 0x100 +   \
-                       (X) % 10 * 0x10000          \
-   : (X) < 100000000 ? 0x30303030 +                \
-                       ((X) / 1000) % 10 +         \
-                       ((X) / 100) % 10 * 0x100 +  \
-                       ((X) / 10) % 10 * 0x10000 + \
-                       (X) % 10 * 0x1000000        \
-                     : 0xffffffffffffffff)
+#define BCD_RIGHT(X)                                                   \
+  (((X)) < 10000    ? 0x20202020                                       \
+   : (X) < 100000   ? 0x20202030 + (X) % 10                            \
+   : (X) < 1000000  ? 0x20203030 + ((X) / 10) % 10 + (X) % 10 * 0x100  \
+   : (X) < 10000000 ? 0x20303030 + ((X) / 100) % 10 +                  \
+                          ((X) / 10) % 10 * 0x100 + (X) % 10 * 0x10000 \
+   : (X) < 100000000                                                   \
+       ? 0x30303030 + ((X) / 1000) % 10 + ((X) / 100) % 10 * 0x100 +   \
+             ((X) / 10) % 10 * 0x10000 + (X) % 10 * 0x1000000          \
+       : 0xffffffffffffffff)
 
 /**
  * Laying out the GDT entries for a TSS for bare metal operation.
@@ -165,15 +159,11 @@
   HIDDEN(SYM##_desc_ent0 = TSSDESC_ENT0(BASE, LIM)); \
   HIDDEN(SYM##_desc_ent1 = TSSDESC_ENT1(BASE));      \
   ASSERT((LIM) >= 0 && (LIM) <= 0xffff, "bare metal TSS is suspiciously fat")
-#define TSSDESC_ENT0(BASE, LIM)                \
-  (((LIM)        <<  0 & 0x000000000000ffff) | \
-   ((BASE)       << 16 & 0x000000ffffff0000) | \
-    0x89         << 40                       | \
-   ((LIM)  >> 16 << 48 & 0x000f000000000000) | \
-    0x2          << 52                       | \
+#define TSSDESC_ENT0(BASE, LIM)                                              \
+  (((LIM) << 0 & 0x000000000000ffff) | ((BASE) << 16 & 0x000000ffffff0000) | \
+   0x89 << 40 | ((LIM) >> 16 << 48 & 0x000f000000000000) | 0x2 << 52 |       \
    ((BASE) >> 24 << 56 & 0xff00000000000000))
-#define TSSDESC_ENT1(BASE)                     \
-   ((BASE) >> 32 <<  0 & 0x00000000ffffffff)
+#define TSSDESC_ENT1(BASE) ((BASE) >> 32 << 0 & 0x00000000ffffffff)
 
 #endif /* __ASSEMBLER__ */
 #endif /* APE_MACROS_H_ */

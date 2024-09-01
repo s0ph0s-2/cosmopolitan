@@ -16,8 +16,8 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/intrin/describeflags.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/intrin/describeflags.h"
+#include "libc/macros.h"
 #include "libc/nt/enum/accessmask.h"
 #include "libc/nt/enum/filesharemode.h"
 #include "libc/sysv/consts/personality.h"
@@ -36,7 +36,7 @@ static const struct DescribeFlags kPersonalityFlags[] = {
     {UNAME26, "UNAME26"},                        //
 };
 
-const char *(DescribePersonalityFlags)(char buf[128], int x) {
-  return DescribeFlags(buf, 128, kPersonalityFlags, ARRAYLEN(kPersonalityFlags),
-                       "", x);
+const char *_DescribePersonalityFlags(char buf[128], int x) {
+  return _DescribeFlags(buf, 128, kPersonalityFlags,
+                        ARRAYLEN(kPersonalityFlags), "", x);
 }

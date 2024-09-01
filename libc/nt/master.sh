@@ -113,6 +113,7 @@ imp	'GetCurrentProcessId'					GetCurrentProcessId					kernel32	0
 imp	'GetCurrentProcessorNumberEx'				GetCurrentProcessorNumberEx				kernel32	1
 imp	'GetCurrentThread'					GetCurrentThread					kernel32	0
 imp	'GetCurrentThreadId'					GetCurrentThreadId					kernel32	0
+imp	'GetDynamicTimeZoneInformation'				GetDynamicTimeZoneInformation				kernel32	1
 imp	'GetEnvironmentStrings'					GetEnvironmentStringsW					kernel32	1
 imp	'GetEnvironmentVariable'				GetEnvironmentVariableW					kernel32	3
 imp	'GetExitCodeThread'					GetExitCodeThread					kernel32	2
@@ -168,8 +169,6 @@ imp	'GetSystemTimePreciseAsFileTime'			GetSystemTimePreciseAsFileTime				kernel3
 imp	'GetSystemTimes'					GetSystemTimes						kernel32	3
 imp	'GetTempPath'						GetTempPathW						kernel32	2
 imp	'GetTempPathA'						GetTempPathA						kernel32	2
-imp	'GetDynamicTimeZoneInformation'				GetDynamicTimeZoneInformation				kernel32	1
-imp	'GetTimeZoneInformation'				GetTimeZoneInformation					kernel32	1
 imp	'GetThreadContext'					GetThreadContext					kernel32	2
 imp	'GetThreadDescription'					GetThreadDescription					kernel32	2
 imp	'GetThreadIOPendingFlag'				GetThreadIOPendingFlag					kernel32	2
@@ -178,6 +177,7 @@ imp	'GetThreadPriority'					GetThreadPriority					kernel32	1
 imp	'GetThreadPriorityBoost'				GetThreadPriorityBoost					kernel32	2
 imp	'GetThreadTimes'					GetThreadTimes						kernel32	5
 imp	'GetTickCount64'					GetTickCount64						kernel32	0
+imp	'GetTimeZoneInformation'				GetTimeZoneInformation					kernel32	1
 imp	'GetVersionEx'						GetVersionExW						kernel32	1
 imp	'GetVolumeInformationByHandle'				GetVolumeInformationByHandleW				kernel32	8
 imp	'GetVolumePathName'					GetVolumePathNameW					kernel32	3
@@ -197,6 +197,7 @@ imp	'InitializeCriticalSection'				InitializeCriticalSection				kernel32	1
 imp	'InitializeCriticalSectionAndSpinCount'			InitializeCriticalSectionAndSpinCount			kernel32	2
 imp	'InitializeProcThreadAttributeList'			InitializeProcThreadAttributeList			kernel32	4
 imp	'InitializeSRWLock'					InitializeSRWLock					kernel32	1
+imp	'IsWow64Process2'					IsWow64Process2						kernel32	3
 imp	'LeaveCriticalSection'					LeaveCriticalSection					kernel32	1
 imp	'LoadLibrary'						LoadLibraryW						kernel32	1
 imp	'LoadLibraryA'						LoadLibraryA						kernel32	1
@@ -205,7 +206,6 @@ imp	'LoadResource'						LoadResource						kernel32	2
 imp	'LocalFree'						LocalFree						kernel32	1
 imp	'LockFile'						LockFile						kernel32	5
 imp	'LockResource'						LockResource						kernel32	1
-imp	'MapViewOfFile3'					MapViewOfFile3						kernel32	9
 imp	'MoveFile'						MoveFileW						kernel32	2
 imp	'MultiByteToWideChar'					MultiByteToWideChar					kernel32	6
 imp	'OfferVirtualMemory'					OfferVirtualMemory					kernel32	3
@@ -296,7 +296,6 @@ imp	'UnmapViewOfFile2'					UnmapViewOfFile2					kernel32	2
 imp	'UnmapViewOfFileEx'					UnmapViewOfFileEx					kernel32	3
 imp	'UpdateProcThreadAttribute'				UpdateProcThreadAttribute				kernel32	7
 imp	'VirtualAlloc'						VirtualAlloc						kernel32	4
-imp	'VirtualAlloc2'						VirtualAlloc2						kernel32	7
 imp	'VirtualAllocEx'					VirtualAllocEx						kernel32	5
 imp	'VirtualFree'						VirtualFree						kernel32	3
 imp	'VirtualLock'						VirtualLock						kernel32	2
@@ -628,6 +627,12 @@ imp	'ProcessPrng'						ProcessPrng						BCryptPrimitives	2
 imp	'WaitOnAddress'						WaitOnAddress						API-MS-Win-Core-Synch-l1-2-0		4
 imp	'WakeByAddressAll'					WakeByAddressAll					API-MS-Win-Core-Synch-l1-2-0		1
 imp	'WakeByAddressSingle'					WakeByAddressSingle					API-MS-Win-Core-Synch-l1-2-0		1
+
+# API-MS-Win-Core-Memory-l1-1-6.dll (Windows 10+)
+#
+#	Name							Actual							DLL					Arity
+imp	'MapViewOfFile3'					MapViewOfFile3						API-MS-Win-Core-Memory-l1-1-6		9
+imp	'VirtualAlloc2'						VirtualAlloc2						API-MS-Win-Core-Memory-l1-1-6		7
 
 # NTDLL.DLL
 # BEYOND THE PALE

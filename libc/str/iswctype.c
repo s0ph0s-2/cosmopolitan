@@ -16,8 +16,8 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/macros.internal.h"
-#include "libc/str/str.h"
+#include "libc/macros.h"
+#include "libc/wctype.h"
 
 typedef int (*isw_f)(wint_t);
 

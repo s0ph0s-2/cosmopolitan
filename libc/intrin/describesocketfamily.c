@@ -17,10 +17,10 @@
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/fmt/itoa.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/sysv/consts/af.h"
 
-const char *(DescribeSocketFamily)(char buf[12], int family) {
+const char *_DescribeSocketFamily(char buf[12], int family) {
   if (family == AF_UNIX)
     return "AF_UNIX";
   if (family == AF_INET)

@@ -1,15 +1,19 @@
 #ifndef COSMOPOLITAN_LIBC_FMT_STRTOL_H_
 #define COSMOPOLITAN_LIBC_FMT_STRTOL_H_
+#include "libc/ctype.h"
 #include "libc/errno.h"
 #include "libc/str/str.h"
 
-#define CONSUME_SPACES(t, s, c)   \
-  if (endptr) *endptr = (t *)(s); \
-  while (c == ' ' || c == '\t') c = *++s
+#define CONSUME_SPACES(t, s, c) \
+  if (endptr)                   \
+    *endptr = (t *)(s);         \
+  while (c == ' ' || c == '\t') \
+  c = *++s
 
-#define GET_SIGN(s, c, d) \
-  d = c == '-' ? -1 : 1;  \
-  if (c == '-' || c == '+') c = *++s
+#define GET_SIGN(s, c, d)   \
+  d = c == '-' ? -1 : 1;    \
+  if (c == '-' || c == '+') \
+  c = *++s
 
 #define GET_RADIX(s, c, r)                                                 \
   if (!r) {                                                                \
@@ -43,6 +47,6 @@
 
 int __vcscanf(int (*)(void *), int (*)(int, void *), void *, const char *,
               va_list);
-int __fmt(void *, void *, const char *, va_list);
+int __fmt(void *, void *, const char *, va_list, int *);
 
 #endif /* COSMOPOLITAN_LIBC_FMT_STRTOL_H_ */

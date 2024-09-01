@@ -30,14 +30,13 @@
 #include "libc/calls/syscall_support-sysv.internal.h"
 #include "libc/calls/ucontext.h"
 #include "libc/dce.h"
-#include "libc/intrin/asan.internal.h"
-#include "libc/intrin/describeflags.internal.h"
+#include "libc/intrin/describeflags.h"
 #include "libc/intrin/dll.h"
-#include "libc/intrin/strace.internal.h"
+#include "libc/intrin/strace.h"
 #include "libc/limits.h"
 #include "libc/log/backtrace.internal.h"
 #include "libc/log/log.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/mem/mem.h"
 #include "libc/runtime/runtime.h"
 #include "libc/runtime/syslib.internal.h"
@@ -167,10 +166,6 @@ static int __sigaction(int sig, const struct sigaction *act,
     return einval();
   if (sig == SIGKILL || sig == SIGSTOP)
     return einval();
-  if (IsAsan() && ((act && !__asan_is_valid(act, sizeof(*act))) ||
-                   (oldact && !__asan_is_valid(oldact, sizeof(*oldact))))) {
-    return efault();
-  }
   if (!act) {
     rva = (int32_t)(intptr_t)SIG_DFL;
   } else if ((intptr_t)act->sa_handler < kSigactionMinRva) {
@@ -421,7 +416,7 @@ static int __sigaction(int sig, const struct sigaction *act,
  *       ctx->uc_mcontext.rip += xedd.length;
  *     }
  *
- *     void OnCrash(int sig, struct siginfo *si, void *vctx) {
+ *     void OnCrash(int sig, siginfo_t *si, void *vctx) {
  *       struct ucontext *ctx = vctx;
  *       SkipOverFaultingInstruction(ctx);
  *       ContinueOnCrash();  // reinstall here in case *rip faults

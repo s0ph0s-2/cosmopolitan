@@ -24,13 +24,13 @@
 #include "libc/intrin/popcnt.h"
 #include "libc/log/check.h"
 #include "libc/log/log.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/mem/mem.h"
 #include "libc/nexgen32e/crc32.h"
 #include "libc/runtime/runtime.h"
 #include "libc/stdio/stdio.h"
 #include "libc/str/str.h"
-#include "libc/str/tab.internal.h"
+#include "libc/str/tab.h"
 #include "libc/sysv/consts/o.h"
 #include "libc/sysv/consts/s.h"
 #include "libc/x/x.h"
@@ -38,6 +38,7 @@
 #include "third_party/chibicc/file.h"
 #include "third_party/gdtoa/gdtoa.h"
 #include "libc/serialize.h"
+#include "libc/ctype.h"
 #include "tool/build/lib/elfwriter.h"
 
 #define OSZ  0x66

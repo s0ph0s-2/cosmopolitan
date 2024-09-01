@@ -24,8 +24,8 @@
 #include "libc/calls/syscall-sysv.internal.h"
 #include "libc/dce.h"
 #include "libc/errno.h"
-#include "libc/intrin/promises.internal.h"
-#include "libc/intrin/strace.internal.h"
+#include "libc/intrin/promises.h"
+#include "libc/intrin/strace.h"
 #include "libc/intrin/weaken.h"
 #include "libc/nexgen32e/vendor.internal.h"
 #include "libc/runtime/runtime.h"
@@ -169,8 +169,7 @@
  *   turn APE binaries into static native binaries.
  *
  * - "prot_exec" allows mmap(PROT_EXEC) and mprotect(PROT_EXEC). This is
- *   needed to (1) code morph mutexes in __enable_threads(), and it's
- *   needed to (2) launch non-static or non-native executables, e.g.
+ *   needed to launch non-static or non-native executables, e.g.
  *   non-assimilated APE binaries, or dynamic-linked executables.
  *
  * - "unveil" allows unveil() to be called, as well as the underlying
@@ -232,6 +231,21 @@
  *   OpenBSD. Otherwise, Linux prefers to raise `SIGSYS`. Enabling this
  *   option might not be a good idea if you're pledging `exec` because
  *   subprocesses can't inherit the `SIGSYS` handler this installs.
+ *
+ * If you experience crashes during startup when execve'ing a cosmo
+ * binary that's had permissions like rpath pledged away, then try doing
+ * this before calling execve. This prevents special startup checks.
+ *
+ *     putenv("COMDBG=program.dbg");
+ *
+ * If having pledge() security is mission critical, then add this code
+ * to the start of your main() function to ensure your program fails
+ * with an error if it isn't available.
+ *
+ *     if (pledge(0, 0)) {
+ *       fprintf(stderr, "error: OS doesn't support pledge() security\n");
+ *       exit(1);
+ *     }
  *
  * @return 0 on success, or -1 w/ errno
  * @raise ENOSYS if `pledge(0, 0)` was used and security is not possible

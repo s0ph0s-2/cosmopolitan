@@ -21,11 +21,12 @@
 #include "libc/calls/metalfile.internal.h"
 #include "libc/calls/struct/stat.h"
 #include "libc/cosmo.h"
+#include "libc/dce.h"
 #include "libc/fmt/conv.h"
 #include "libc/intrin/cmpxchg.h"
-#include "libc/intrin/promises.internal.h"
-#include "libc/intrin/strace.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/intrin/promises.h"
+#include "libc/intrin/strace.h"
+#include "libc/macros.h"
 #include "libc/mem/alg.h"
 #include "libc/runtime/runtime.h"
 #include "libc/runtime/zipos.internal.h"
@@ -37,7 +38,7 @@
 #include "libc/sysv/consts/posix.h"
 #include "libc/sysv/consts/prot.h"
 #include "libc/thread/thread.h"
-#include "libc/zip.internal.h"
+#include "libc/zip.h"
 
 #ifdef __x86_64__
 __static_yoink(APE_COM_NAME);
@@ -62,15 +63,10 @@ static void __zipos_dismiss(uint8_t *map, const uint8_t *cdir, long pg) {
   }
 
   // unmap the executable portion beneath the local files
-  mo = ROUNDDOWN(lo, FRAMESIZE);
-  if (mo)
-    munmap(map, mo);
-
-  // this is supposed to reduce our rss usage but does it really?
-  lo = ROUNDDOWN(lo, pg);
-  hi = MIN(ROUNDUP(hi, pg), ROUNDDOWN(c, pg));
-  if (hi > lo) {
-    posix_madvise(map + lo, hi - lo, POSIX_MADV_DONTNEED);
+  if (!IsWindows()) {
+    mo = ROUNDDOWN(lo, __gransize);
+    if (mo)
+      munmap(map, mo);
   }
 }
 
@@ -96,9 +92,8 @@ static void __zipos_generate_index(struct Zipos *zipos) {
   zipos->records = GetZipCdirRecords(zipos->cdir);
   zipos->index = _mapanon(zipos->records * sizeof(size_t));
   for (i = 0, c = GetZipCdirOffset(zipos->cdir); i < zipos->records;
-       ++i, c += ZIP_CFILE_HDRSIZE(zipos->map + c)) {
+       ++i, c += ZIP_CFILE_HDRSIZE(zipos->map + c))
     zipos->index[i] = c;
-  }
   // smoothsort() isn't the fastest algorithm, but it guarantees
   // o(nlogn) won't smash the stack and doesn't depend on malloc
   smoothsort_r(zipos->index, zipos->records, sizeof(size_t),
@@ -114,7 +109,7 @@ static void __zipos_init(void) {
   const char *progpath;
   if (!(s = getenv("COSMOPOLITAN_DISABLE_ZIPOS"))) {
     // this environment variable may be a filename or file descriptor
-    if ((progpath = getenv("COSMOPOLITAN_INIT_ZIPOS")) &&
+    if ((progpath = secure_getenv("COSMOPOLITAN_INIT_ZIPOS")) &&
         (x = strtol(progpath, &endptr, 10)) >= 0 && !*endptr) {
       fd = x;
     } else {
@@ -122,16 +117,15 @@ static void __zipos_init(void) {
     }
     if (fd != -1 || PLEDGED(RPATH)) {
       if (fd == -1) {
-        if (!progpath) {
+        if (!progpath)
           progpath = GetProgramExecutableName();
-        }
         fd = open(progpath, O_RDONLY);
       }
       if (fd != -1) {
         if (!fstat(fd, &st) && (map = mmap(0, st.st_size, PROT_READ, MAP_SHARED,
                                            fd, 0)) != MAP_FAILED) {
           if ((cdir = GetZipEocd(map, st.st_size, &err))) {
-            long pagesz = getauxval(AT_PAGESZ);
+            long pagesz = __pagesize;
             __zipos_dismiss(map, cdir, pagesz);
             __zipos.map = map;
             __zipos.cdir = cdir;

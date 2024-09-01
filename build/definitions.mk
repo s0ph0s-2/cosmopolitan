@@ -60,15 +60,9 @@ TMPSAFE = $(TMPDIR)/
 endif
 
 BACKTRACES =								\
+	-fno-schedule-insns2						\
 	-fno-optimize-sibling-calls					\
 	-mno-omit-leaf-frame-pointer
-
-ifneq ($(ARCH), aarch64)
-BACKTRACES += -fno-schedule-insns2
-endif
-
-SANITIZER =								\
-	-fsanitize=address
 
 NO_MAGIC =								\
 	-ffreestanding							\
@@ -98,10 +92,7 @@ DEFAULT_COPTS ?=							\
 	-fno-gnu-unique							\
 	-fstrict-aliasing						\
 	-fstrict-overflow						\
-	-fno-semantic-interposition					\
-	-fno-dwarf2-cfi-asm						\
-	-fno-unwind-tables						\
-	-fno-asynchronous-unwind-tables
+	-fno-semantic-interposition
 
 ifeq ($(ARCH), x86_64)
 # Microsoft says "[a]ny memory below the stack beyond the red zone
@@ -121,14 +112,10 @@ ifeq ($(ARCH), aarch64)
 # - Cosmopolitan Libc uses x28 for thread-local storage because Apple
 #   forbids us from using tpidr_el0 too.
 #
-# - Cosmopolitan currently lacks an implementation of the runtime
-#   libraries needed by the -moutline-atomics flag
-#
 DEFAULT_COPTS +=							\
 	-ffixed-x18							\
 	-ffixed-x28							\
-	-fsigned-char							\
-	-mno-outline-atomics
+	-fsigned-char
 endif
 
 MATHEMATICAL =								\
@@ -145,15 +132,15 @@ DEFAULT_CPPFLAGS +=							\
 	-isystem libc/isystem
 
 DEFAULT_CFLAGS =							\
-	-std=gnu2x
+	-std=gnu23
 
 DEFAULT_CXXFLAGS =							\
-	-fno-rtti							\
-	-fno-exceptions							\
+	-std=gnu++23							\
 	-fuse-cxa-atexit						\
 	-Wno-int-in-bool-context					\
 	-Wno-narrowing							\
-	-Wno-literal-suffix
+	-Wno-literal-suffix						\
+	-isystem third_party/libcxx
 
 DEFAULT_ASFLAGS =							\
 	-W								\
@@ -260,12 +247,12 @@ LD.libs =								\
 	$(LIBS)
 
 COMPILE.c.flags = $(cc.flags) $(copt.flags) $(cpp.flags) $(c.flags)
-COMPILE.cxx.flags = $(cc.flags) $(copt.flags) $(cpp.flags) $(cxx.flags)
+COMPILE.cxx.flags = $(cc.flags) $(copt.flags) $(cxx.flags) $(cpp.flags)
 COMPILE.i.flags = $(cc.flags) $(copt.flags) $(c.flags)
 COMPILE.ii.flags = $(cc.flags) $(copt.flags) $(cxx.flags)
 LINK.flags = $(DEFAULT_LDFLAGS) $(CONFIG_LDFLAGS) $(LDFLAGS)
 OBJECTIFY.c.flags = $(cc.flags) $(o.flags) $(S.flags) $(cpp.flags) $(copt.flags) $(c.flags)
-OBJECTIFY.cxx.flags = $(cc.flags) $(o.flags) $(S.flags) $(cpp.flags) $(copt.flags) $(cxx.flags)
+OBJECTIFY.cxx.flags = $(cc.flags) $(o.flags) $(S.flags) $(cxx.flags) $(cpp.flags) $(copt.flags)
 OBJECTIFY.s.flags = $(ASONLYFLAGS) $(s.flags)
 OBJECTIFY.S.flags = $(cc.flags) $(o.flags) $(S.flags) $(cpp.flags)
 PREPROCESS.flags = -E $(copt.flags) $(cc.flags) $(cpp.flags)

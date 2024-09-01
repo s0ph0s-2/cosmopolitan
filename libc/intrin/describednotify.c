@@ -16,8 +16,8 @@
 │ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR             │
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
-#include "libc/intrin/describeflags.internal.h"
-#include "libc/macros.internal.h"
+#include "libc/intrin/describeflags.h"
+#include "libc/macros.h"
 #include "libc/nt/enum/processaccess.h"
 #include "libc/sysv/consts/dn.h"
 
@@ -31,7 +31,7 @@ static const struct DescribeFlags kDnotifyFlags[] = {
     {DN_MULTISHOT, "MULTISHOT"},  //
 };
 
-const char *(DescribeDnotifyFlags)(char buf[80], int x) {
-  return DescribeFlags(buf, 80, kDnotifyFlags, ARRAYLEN(kDnotifyFlags), "DN_",
-                       x);
+const char *_DescribeDnotifyFlags(char buf[80], int x) {
+  return _DescribeFlags(buf, 80, kDnotifyFlags, ARRAYLEN(kDnotifyFlags), "DN_",
+                        x);
 }

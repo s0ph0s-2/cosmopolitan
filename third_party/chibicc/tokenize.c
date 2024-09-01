@@ -2,9 +2,10 @@
 #include "libc/log/log.h"
 #include "libc/runtime/runtime.h"
 #include "libc/str/str.h"
-#include "libc/str/tab.internal.h"
+#include "libc/str/tab.h"
 #include "third_party/chibicc/chibicc.h"
 #include "third_party/chibicc/file.h"
+#include "libc/ctype.h"
 #include "third_party/chibicc/kw.h"
 
 // Input file

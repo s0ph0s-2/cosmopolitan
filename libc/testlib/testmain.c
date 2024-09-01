@@ -26,13 +26,14 @@
 #include "libc/dce.h"
 #include "libc/errno.h"
 #include "libc/intrin/dll.h"
-#include "libc/intrin/getenv.internal.h"
-#include "libc/intrin/safemacros.internal.h"
-#include "libc/intrin/strace.internal.h"
+#include "libc/intrin/getenv.h"
+#include "libc/intrin/safemacros.h"
+#include "libc/intrin/strace.h"
 #include "libc/intrin/ubsan.h"
 #include "libc/intrin/weaken.h"
 #include "libc/log/log.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
+#include "libc/mem/leaks.h"
 #include "libc/mem/mem.h"
 #include "libc/nexgen32e/nexgen32e.h"
 #include "libc/runtime/runtime.h"
@@ -89,7 +90,7 @@ static void GetOpts(int argc, char *argv[]) {
 /**
  * Generic test program main function.
  */
-dontasan int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   int fd;
   struct Dll *e;
   struct TestAspect *a;
@@ -104,7 +105,7 @@ dontasan int main(int argc, char *argv[]) {
   __log_level = kLogInfo;
   GetOpts(argc, argv);
 
-  for (fd = 3; fd < 10; ++fd) {
+  for (fd = 3; fd < 100; ++fd) {
     close(fd);
   }
 
@@ -150,23 +151,20 @@ dontasan int main(int argc, char *argv[]) {
       a->teardown(0);
     }
   }
-  if (_weaken(TearDownOnce)) {
+  if (_weaken(TearDownOnce))
     _weaken(TearDownOnce)();
-  }
 
   // make sure threads are in a good state
-  if (_weaken(_pthread_decimate)) {
-    _weaken(_pthread_decimate)();
-  }
+  if (_weaken(_pthread_decimate))
+    _weaken(_pthread_decimate)(false);
   if (_weaken(pthread_orphan_np) && !_weaken(pthread_orphan_np)()) {
     tinyprint(2, "error: tests ended with threads still active\n", NULL);
     _Exit(1);
   }
 
   // check for memory leaks
-  if (IsAsan() && !g_testlib_failed) {
+  if (!g_testlib_failed)
     CheckForMemoryLeaks();
-  }
 
   // we're done!
   int status = MIN(255, g_testlib_failed);

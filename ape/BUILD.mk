@@ -45,10 +45,10 @@ o/$(MODE)/ape: $(APE)
 
 o/$(MODE)/ape/aarch64.lds:			\
 	ape/aarch64.lds				\
-	libc/zip.internal.h			\
+	libc/zip.h				\
 	libc/thread/tls.h			\
 	libc/calls/struct/timespec.h		\
-	libc/macros.internal.h			\
+	libc/macros.h				\
 	libc/str/str.h
 
 APE_LOADER_LDFLAGS =				\
@@ -162,9 +162,8 @@ o/$(MODE)/ape/ape-no-modify-self.o:		\
 		libc/dce.h			\
 		libc/elf/def.h			\
 		libc/thread/tls.h		\
-		libc/intrin/asancodes.h		\
-		libc/macho.internal.h		\
-		libc/macros.internal.h		\
+		libc/macho.h			\
+		libc/macros.h			\
 		libc/nexgen32e/uart.internal.h	\
 		libc/calls/metalfile.internal.h	\
 		libc/nt/pedef.internal.h	\
@@ -189,9 +188,8 @@ o/$(MODE)/ape/ape-copy-self.o:			\
 		libc/dce.h			\
 		libc/elf/def.h			\
 		libc/thread/tls.h		\
-		libc/intrin/asancodes.h		\
-		libc/macho.internal.h		\
-		libc/macros.internal.h		\
+		libc/macho.h			\
+		libc/macros.h			\
 		libc/nexgen32e/uart.internal.h	\
 		libc/calls/metalfile.internal.h	\
 		libc/nt/pedef.internal.h	\
@@ -220,10 +218,10 @@ o/$(MODE)/ape/loader-xnu-clang.asm: ape/loader.c
 	@$(COMPILE) -AOBJECTIFY.c $(CLANG) -DSUPPORT_VECTOR=8 -S -g0 $(APE_LOADER_FLAGS)
 
 o/$(MODE)/ape/ape.elf: o/$(MODE)/ape/ape.elf.dbg
-	@$(COMPILE) -AOBJBINCOPY -w build/bootstrap/objbincopy -f -o $@ $<
+	@$(COMPILE) -AOBJBINCOPY -w $(OBJBINCOPY) -f -o $@ $<
 
 o/$(MODE)/ape/ape.macho: o/$(MODE)/ape/ape.elf.dbg
-	@$(COMPILE) -AOBJBINCOPY -w build/bootstrap/objbincopy -fm -o $@ $<
+	@$(COMPILE) -AOBJBINCOPY -w $(OBJBINCOPY) -fm -o $@ $<
 
 APE_LOADER_LDFLAGS =				\
 	-static					\
@@ -248,13 +246,28 @@ o/$(MODE)/ape:	$(APE_CHECKS)			\
 		o/$(MODE)/ape/ape.lds		\
 		o/$(MODE)/ape/ape.elf		\
 		o/$(MODE)/ape/ape.macho		\
-		o/$(MODE)/ape/ape-copy-self.o	\
-		o/$(MODE)/ape/ape-no-modify-self.o
 
 endif
 
 # these assembly files are safe to build on aarch64
-o/$(MODE)/ape/ape.o: ape/ape.S
+o/$(MODE)/ape/ape.o:				\
+		ape/ape.S			\
+		ape/ape.h			\
+		libc/dce.h			\
+		libc/elf/def.h			\
+		ape/relocations.h		\
+		libc/thread/tls.h		\
+		ape/ape.internal.h		\
+		ape/macros.internal.h		\
+		libc/macho.h			\
+		libc/macros.h			\
+		libc/sysv/consts/prot.h		\
+		libc/nt/pedef.internal.h	\
+		libc/runtime/pc.internal.h	\
+		libc/runtime/e820.internal.h	\
+		libc/runtime/mman.internal.h	\
+		libc/nexgen32e/uart.internal.h	\
+		libc/calls/metalfile.internal.h
 	@$(COMPILE) -AOBJECTIFY.S $(OBJECTIFY.S) $(OUTPUT_OPTION) -c $<
 
 o/$(MODE)/ape/ape.lds:				\
@@ -268,7 +281,7 @@ o/$(MODE)/ape/ape.lds:				\
 		libc/dce.h			\
 		libc/elf/def.h			\
 		libc/elf/pf2prot.internal.h	\
-		libc/macros.internal.h		\
+		libc/macros.h			\
 		libc/nt/pedef.internal.h	\
 		libc/str/str.h			\
-		libc/zip.internal.h
+		libc/zip.h

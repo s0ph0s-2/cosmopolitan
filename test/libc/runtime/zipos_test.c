@@ -33,9 +33,9 @@
 
 __static_yoink("zipos");
 __static_yoink("libc/testlib/hyperion.txt");
-__static_yoink("inflate");
-__static_yoink("inflateInit2");
-__static_yoink("inflateEnd");
+__static_yoink("_Cz_inflate");
+__static_yoink("_Cz_inflateInit2");
+__static_yoink("_Cz_inflateEnd");
 
 void *Worker(void *arg) {
   int i, fd;
@@ -54,13 +54,10 @@ void *Worker(void *arg) {
 TEST(zipos, test) {
   int i, n = 16;
   pthread_t *t = gc(malloc(sizeof(pthread_t) * n));
-  for (i = 0; i < n; ++i) {
+  for (i = 0; i < n; ++i)
     ASSERT_SYS(0, 0, pthread_create(t + i, 0, Worker, 0));
-  }
-  for (i = 0; i < n; ++i) {
+  for (i = 0; i < n; ++i)
     EXPECT_SYS(0, 0, pthread_join(t[i], 0));
-  }
-  __print_maps();
 }
 
 TEST(zipos, erofs) {
@@ -145,7 +142,6 @@ static void *pthread_main(void *ptr) {
   struct State *s = ptr;
   struct State children[2];
   int fd, rc;
-
   fd = s->fd;
   if (s->id < 8) {
     for (int i = 0; i < 2; ++i) {

@@ -30,7 +30,7 @@
 #include "libc/calls/syscall_support-sysv.internal.h"
 #include "libc/dce.h"
 #include "libc/errno.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/mem/mem.h"
 #include "libc/runtime/internal.h"
 #include "libc/runtime/runtime.h"
@@ -56,6 +56,7 @@
 #include "libc/testlib/ezbench.h"
 #include "libc/testlib/subprocess.h"
 #include "libc/testlib/testlib.h"
+#include "libc/thread/lock.h"
 #include "libc/thread/posixthread.internal.h"
 #include "libc/thread/thread.h"
 #include "libc/time.h"
@@ -85,7 +86,7 @@ TEST(pledge, default_allowsExit) {
   int *job;
   int ws, pid;
   // create small shared memory region
-  ASSERT_NE(-1, (job = mmap(0, FRAMESIZE, PROT_READ | PROT_WRITE,
+  ASSERT_NE(-1, (job = mmap(0, getpagesize(), PROT_READ | PROT_WRITE,
                             MAP_SHARED | MAP_ANONYMOUS, -1, 0)));
   job[0] = 2;  // create workload
   job[1] = 2;
@@ -99,7 +100,7 @@ TEST(pledge, default_allowsExit) {
   EXPECT_TRUE(WIFEXITED(ws));
   EXPECT_EQ(0, WEXITSTATUS(ws));
   EXPECT_EQ(4, job[0]);  // check result
-  EXPECT_SYS(0, 0, munmap(job, FRAMESIZE));
+  EXPECT_SYS(0, 0, munmap(job, getpagesize()));
 }
 
 TEST(pledge, execpromises_notok) {
@@ -108,12 +109,15 @@ TEST(pledge, execpromises_notok) {
   int ws, pid;
   ASSERT_NE(-1, (pid = fork()));
   if (!pid) {
+    putenv("COMDBG=REDACTED");
     __pledge_mode = PLEDGE_PENALTY_RETURN_EPERM;
     ASSERT_SYS(0, 0, pledge("stdio rpath exec", "stdio"));
     execl("sock.elf", "sock.elf", 0);
     _Exit(127);
   }
   EXPECT_NE(-1, wait(&ws));
+  EXPECT_FALSE(WIFSIGNALED(ws));
+  EXPECT_EQ(0, WTERMSIG(ws));
   EXPECT_TRUE(WIFEXITED(ws));
   EXPECT_EQ(129, WEXITSTATUS(ws));
 }
@@ -297,7 +301,7 @@ TEST(pledge, stdioTty_sendtoRestricted_requiresNullAddr) {
     errno = 0;
     // set lower 32-bit word of pointer to zero lool
     struct sockaddr_in *sin =
-        mmap((void *)0x300000000000, FRAMESIZE, PROT_READ | PROT_WRITE,
+        mmap((void *)0x300000000000, getpagesize(), PROT_READ | PROT_WRITE,
              MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     sin->sin_family = AF_INET;
     ASSERT_SYS(
@@ -333,7 +337,7 @@ TEST(pledge, unix_forbidsInetSockets) {
 TEST(pledge, wpath_doesNotImplyRpath) {
   int ws, pid;
   bool *gotsome;
-  ASSERT_NE(-1, (gotsome = _mapshared(FRAMESIZE)));
+  ASSERT_NE(-1, (gotsome = _mapshared(getpagesize())));
   ASSERT_SYS(0, 0, touch("foo", 0644));
   ASSERT_NE(-1, (pid = fork()));
   if (!pid) {
@@ -411,13 +415,13 @@ TEST(pledge, mmap) {
   ASSERT_NE(-1, (pid = fork()));
   if (!pid) {
     ASSERT_SYS(0, 0, pledge("stdio", 0));
-    ASSERT_NE(MAP_FAILED, (p = mmap(0, FRAMESIZE, PROT_READ | PROT_WRITE,
+    ASSERT_NE(MAP_FAILED, (p = mmap(0, getpagesize(), PROT_READ | PROT_WRITE,
                                     MAP_ANONYMOUS | MAP_PRIVATE, -1, 0)));
-    ASSERT_SYS(0, 0, mprotect(p, FRAMESIZE, PROT_READ));
+    ASSERT_SYS(0, 0, mprotect(p, getpagesize(), PROT_READ));
     ASSERT_SYS(EPERM, MAP_FAILED,
-               mprotect(p, FRAMESIZE, PROT_READ | PROT_EXEC));
+               mprotect(p, getpagesize(), PROT_READ | PROT_EXEC));
     ASSERT_SYS(EPERM, MAP_FAILED,
-               mmap(0, FRAMESIZE, PROT_EXEC | PROT_READ,
+               mmap(0, getpagesize(), PROT_EXEC | PROT_READ,
                     MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
     _Exit(0);
   }
@@ -433,11 +437,11 @@ TEST(pledge, mmapProtExec) {
   ASSERT_NE(-1, (pid = fork()));
   if (!pid) {
     ASSERT_SYS(0, 0, pledge("stdio prot_exec", 0));
-    ASSERT_NE(MAP_FAILED, (p = mmap(0, FRAMESIZE, PROT_READ | PROT_WRITE,
+    ASSERT_NE(MAP_FAILED, (p = mmap(0, getpagesize(), PROT_READ | PROT_WRITE,
                                     MAP_ANONYMOUS | MAP_PRIVATE, -1, 0)));
-    ASSERT_SYS(0, 0, mprotect(p, FRAMESIZE, PROT_READ));
-    ASSERT_SYS(0, 0, mprotect(p, FRAMESIZE, PROT_READ | PROT_EXEC));
-    ASSERT_NE(MAP_FAILED, mmap(0, FRAMESIZE, PROT_EXEC | PROT_READ,
+    ASSERT_SYS(0, 0, mprotect(p, getpagesize(), PROT_READ));
+    ASSERT_SYS(0, 0, mprotect(p, getpagesize(), PROT_READ | PROT_EXEC));
+    ASSERT_NE(MAP_FAILED, mmap(0, getpagesize(), PROT_EXEC | PROT_READ,
                                MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
     _Exit(0);
   }
@@ -531,6 +535,7 @@ TEST(pledge, execpromises_ok) {
   int ws, pid;
   ASSERT_NE(-1, (pid = fork()));
   if (!pid) {
+    putenv("COMDBG=REDACTED");
     ASSERT_SYS(0, 0, pledge("stdio exec", "stdio"));
     execl("life.elf", "life.elf", 0);
     _Exit(127);
@@ -546,6 +551,7 @@ TEST(pledge, execpromises_notok1) {
   int ws, pid;
   ASSERT_NE(-1, (pid = fork()));
   if (!pid) {
+    putenv("COMDBG=REDACTED");
     ASSERT_SYS(0, 0, pledge("stdio exec", "stdio"));
     execl("sock.elf", "sock.elf", 0);
     _Exit(127);
@@ -561,6 +567,7 @@ TEST(pledge, execpromises_reducesAtExecOnLinux) {
   int ws, pid;
   ASSERT_NE(-1, (pid = fork()));
   if (!pid) {
+    putenv("COMDBG=REDACTED");
     ASSERT_SYS(0, 0, pledge("stdio inet tty exec", "stdio tty"));
     execl("sock.elf", "sock.elf", 0);
     _Exit(127);
@@ -618,6 +625,7 @@ TEST(pledge_openbsd, execpromises_notok) {
   int ws, pid;
   ASSERT_NE(-1, (pid = fork()));
   if (!pid) {
+    putenv("COMDBG=REDACTED");
     ASSERT_SYS(0, 0, pledge("stdio exec", "stdio"));
     execl("sock.elf", "sock.elf", 0);
     _Exit(127);
@@ -652,7 +660,7 @@ TEST(pledge_openbsd, bigSyscalls) {
 
 void *LockWorker(void *arg) {
   flockfile(stdout);
-  ASSERT_EQ(gettid(), stdout->lock._owner);
+  ASSERT_EQ(gettid(), MUTEX_OWNER(stdout->lock._word));
   funlockfile(stdout);
   return 0;
 }

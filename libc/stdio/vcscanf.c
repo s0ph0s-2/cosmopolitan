@@ -23,7 +23,7 @@
 #include "libc/mem/mem.h"
 #include "libc/runtime/runtime.h"
 #include "libc/str/str.h"
-#include "libc/str/tab.internal.h"
+#include "libc/str/tab.h"
 #include "libc/str/tpdecodecb.internal.h"
 #include "libc/str/utf16.h"
 #include "libc/sysv/errfuns.h"
@@ -254,11 +254,15 @@ int __vcscanf(int callback(void *),    //
                 c = READ;
               }
               fpbufsize = FP_BUFFER_GROW;
-              fpbuf = malloc(fpbufsize);
-              fpbufcur = 0;
-              fpbuf[fpbufcur++] = c;
-              fpbuf[fpbufcur] = '\0';
-              goto ConsumeFloatingPointNumber;
+              if ((fpbuf = malloc(fpbufsize))) {
+                fpbufcur = 0;
+                fpbuf[fpbufcur++] = c;
+                fpbuf[fpbufcur] = '\0';
+                goto ConsumeFloatingPointNumber;
+              } else {
+                items = -1;
+                goto Done;
+              }
             default:
               items = einval();
               goto Done;
@@ -513,12 +517,16 @@ int __vcscanf(int callback(void *),    //
         if (discard) {
           buf = NULL;
         } else if (ismalloc) {
-          buf = malloc(bufsize * charbytes);
-          struct FreeMe *entry;
-          if (buf && (entry = calloc(1, sizeof(struct FreeMe)))) {
-            entry->ptr = buf;
-            entry->next = freeme;
-            freeme = entry;
+          if ((buf = malloc(bufsize * charbytes))) {
+            struct FreeMe *entry;
+            if (buf && (entry = calloc(1, sizeof(struct FreeMe)))) {
+              entry->ptr = buf;
+              entry->next = freeme;
+              freeme = entry;
+            }
+          } else {
+            items = -1;
+            goto Done;
           }
         } else {
           buf = va_arg(va, void *);
@@ -553,9 +561,10 @@ int __vcscanf(int callback(void *),    //
                 items = -1;
                 goto Done;
               } else if (rawmode && j != width) {
-                /* The C standard says that %c "matches a sequence of characters of
-                 * **exactly** the number specified by the field width". If we have
-                 * fewer characters, what we've just read is invalid. */
+                /* The C standard says that %c "matches a sequence of characters
+                 * of
+                 * **exactly** the number specified by the field width". If we
+                 * have fewer characters, what we've just read is invalid. */
                 goto Done;
               } else if (!rawmode && j < bufsize) {
                 if (charbytes == sizeof(char)) {

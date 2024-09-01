@@ -25,6 +25,7 @@
 #include "libc/calls/struct/winsize.h"
 #include "libc/calls/termios.h"
 #include "libc/calls/ucontext.h"
+#include "libc/ctype.h"
 #include "libc/dce.h"
 #include "libc/errno.h"
 #include "libc/fmt/conv.h"
@@ -32,16 +33,16 @@
 #include "libc/intrin/bsf.h"
 #include "libc/intrin/bsr.h"
 #include "libc/intrin/hilbert.h"
-#include "libc/intrin/safemacros.internal.h"
+#include "libc/intrin/safemacros.h"
 #include "libc/limits.h"
 #include "libc/log/log.h"
-#include "libc/macros.internal.h"
+#include "libc/macros.h"
 #include "libc/runtime/runtime.h"
 #include "libc/sock/sock.h"
 #include "libc/sock/struct/pollfd.h"
 #include "libc/stdio/stdio.h"
 #include "libc/str/str.h"
-#include "libc/str/tab.internal.h"
+#include "libc/str/tab.h"
 #include "libc/str/unicode.h"
 #include "libc/sysv/consts/ex.h"
 #include "libc/sysv/consts/exit.h"
@@ -225,11 +226,11 @@ static void OnExit(void) {
   tcsetattr(out, TCSANOW, &oldterm);
 }
 
-static void OnSigInt(int sig, struct siginfo *sa, void *uc) {
+static void OnSigInt(int sig, siginfo_t *sa, void *uc) {
   action |= INTERRUPTED;
 }
 
-static void OnSigWinch(int sig, struct siginfo *sa, void *uc) {
+static void OnSigWinch(int sig, siginfo_t *sa, void *uc) {
   action |= RESIZED;
 }
 
@@ -281,8 +282,8 @@ static void SetupCanvas(void) {
     munmap(buffer, buffersize);
   }
   displaysize = ROUNDUP(ROUNDUP((tyn * txn) << zoom, 16), 1ul << zoom);
-  canvassize = ROUNDUP(displaysize, FRAMESIZE);
-  buffersize = ROUNDUP(tyn * txn * 16 + 4096, FRAMESIZE);
+  canvassize = ROUNDUP(displaysize, getgransize());
+  buffersize = ROUNDUP(tyn * txn * 16 + 4096, getgransize());
   canvas = Allocate(canvassize);
   buffer = Allocate(buffersize);
 }
