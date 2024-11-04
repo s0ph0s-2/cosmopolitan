@@ -317,7 +317,12 @@ int ParseHttpMessage(struct HttpMessage *r, const char *p, size_t n, size_t c) {
         __builtin_unreachable();
     }
   }
-  if (r->i < c)
+  /* s0ph0s: For very long headers (more than 1500 bytes), this function needs
+   * to be called multiple times.  On the second call, r->i will be 1501.  This
+   * is normal, and this function should return 0 to indicate that more data is
+   * expected.  I've added +2 here to ensure that it works as expected here.
+   */
+  if (r->i < (c + 2))
     return 0;
   return ebadmsg();
 }
