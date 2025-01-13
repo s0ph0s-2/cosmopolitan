@@ -18,6 +18,7 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/atomic.h"
 #include "libc/calls/calls.h"
+#include "libc/calls/struct/sigaction.h"
 #include "libc/calls/struct/timespec.h"
 #include "libc/errno.h"
 #include "libc/fmt/itoa.h"
@@ -28,8 +29,10 @@
 #include "libc/runtime/internal.h"
 #include "libc/runtime/runtime.h"
 #include "libc/runtime/stack.h"
+#include "libc/runtime/symbols.internal.h"
 #include "libc/str/str.h"
 #include "libc/sysv/consts/clone.h"
+#include "libc/sysv/consts/sig.h"
 #include "libc/thread/thread.h"
 #include "libc/thread/tls.h"
 #include "third_party/nsync/mu.h"
@@ -61,6 +64,9 @@ pthread_mutex_t mu;
     if (_want != _got)                                                \
       __assert_eq_fail(__FILE__, __LINE__, #WANT, #GOT, _want, _got); \
   } while (0)
+
+void ignore_signal(int sig) {
+}
 
 void __assert_eq_fail(const char *file, int line, const char *wantstr,
                       const char *gotstr, long want, long got) {
@@ -112,10 +118,15 @@ void TestContendedLock(const char *name, int kind) {
   char *stk;
   double ns;
   errno_t rc;
+  int x, i, n = 10000;
   struct timespec t1, t2;
   pthread_mutexattr_t attr;
-  int tid, x, i, n = 10000;
-  struct CosmoTib tib = {.tib_self = &tib, .tib_self2 = &tib, .tib_tid = -1};
+  struct CosmoTib tib = {
+      .tib_self = &tib,
+      .tib_self2 = &tib,
+      .tib_ctid = -1,
+      .tib_ptid = 0,
+  };
   pthread_mutexattr_init(&attr);
   pthread_mutexattr_settype(&attr, kind);
   pthread_mutex_init(&mu, &attr);
@@ -127,7 +138,7 @@ void TestContendedLock(const char *name, int kind) {
              CLONE_VM | CLONE_THREAD | CLONE_FS | CLONE_FILES | CLONE_SIGHAND |
                  CLONE_SYSVSEM | CLONE_PARENT_SETTID | CLONE_CHILD_SETTID |
                  CLONE_CHILD_CLEARTID | CLONE_SETTLS,
-             0, &tid, &tib, &tib.tib_tid);
+             0, &tib.tib_ptid, &tib, &tib.tib_ctid);
   if (rc) {
     kprintf("clone failed: %s\n", strerror(rc));
     _Exit(1);
@@ -143,7 +154,7 @@ void TestContendedLock(const char *name, int kind) {
     ASSERT_EQ(0, pthread_mutex_unlock(&mu));
   }
   t2 = timespec_real();
-  while (tib.tib_tid)
+  while (tib.tib_ctid)
     donothing;
   ASSERT_EQ(1, atomic_load(&success));
   ASSERT_EQ(0, atomic_load(&counter));
@@ -177,6 +188,12 @@ void TestUncontendedLock(const char *name, int kind) {
 int main(int argc, char *argv[]) {
   pthread_mutexattr_t attr;
 
+#ifdef MODE_DBG
+  GetSymbolTable();
+  signal(SIGTRAP, ignore_signal);
+  kprintf("running %s\n", argv[0]);
+#endif
+
 #ifdef __aarch64__
   // our usage of raw clone() is probably broken in aarch64
   // we should just get rid of clone()
@@ -190,7 +207,7 @@ int main(int argc, char *argv[]) {
   }
 
   ASSERT_EQ(0, pthread_mutexattr_init(&attr));
-  ASSERT_EQ(0, pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL));
+  ASSERT_EQ(0, pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_DEFAULT));
   ASSERT_EQ(0, pthread_mutex_init(&mu, &attr));
   ASSERT_EQ(0, pthread_mutexattr_destroy(&attr));
   ASSERT_EQ(0, pthread_mutex_lock(&mu));
@@ -216,28 +233,12 @@ int main(int argc, char *argv[]) {
   ASSERT_EQ(0, pthread_mutex_unlock(&mu));
   ASSERT_EQ(0, pthread_mutex_destroy(&mu));
 
-  ASSERT_EQ(1, __tls_enabled);
-
-  TestUncontendedLock("PTHREAD_MUTEX_NORMAL RAW TLS", PTHREAD_MUTEX_NORMAL);
+  TestUncontendedLock("PTHREAD_MUTEX_DEFAULT RAW TLS", PTHREAD_MUTEX_DEFAULT);
   TestUncontendedLock("PTHREAD_MUTEX_RECURSIVE RAW TLS",
                       PTHREAD_MUTEX_RECURSIVE);
-  TestUncontendedLock("PTHREAD_MUTEX_ERRORCHECK RAW TLS",
-                      PTHREAD_MUTEX_ERRORCHECK);
 
-  TestContendedLock("PTHREAD_MUTEX_NORMAL RAW TLS", PTHREAD_MUTEX_NORMAL);
+  TestContendedLock("PTHREAD_MUTEX_DEFAULT RAW TLS", PTHREAD_MUTEX_DEFAULT);
   TestContendedLock("PTHREAD_MUTEX_RECURSIVE RAW TLS", PTHREAD_MUTEX_RECURSIVE);
-  TestContendedLock("PTHREAD_MUTEX_ERRORCHECK RAW TLS",
-                    PTHREAD_MUTEX_ERRORCHECK);
-
-  __tls_enabled_set(false);
-
-  TestUncontendedLock("PTHREAD_MUTEX_NORMAL RAW", PTHREAD_MUTEX_NORMAL);
-  TestUncontendedLock("PTHREAD_MUTEX_RECURSIVE RAW", PTHREAD_MUTEX_RECURSIVE);
-  TestUncontendedLock("PTHREAD_MUTEX_ERRORCHECK RAW", PTHREAD_MUTEX_ERRORCHECK);
-
-  TestContendedLock("PTHREAD_MUTEX_NORMAL RAW", PTHREAD_MUTEX_NORMAL);
-  TestContendedLock("PTHREAD_MUTEX_RECURSIVE RAW", PTHREAD_MUTEX_RECURSIVE);
-  TestContendedLock("PTHREAD_MUTEX_ERRORCHECK RAW", PTHREAD_MUTEX_ERRORCHECK);
 
   //
 }

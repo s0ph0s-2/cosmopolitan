@@ -22,16 +22,17 @@
 #include "libc/calls/struct/timespec.h"
 #include "libc/calls/struct/timespec.internal.h"
 #include "libc/calls/syscall-sysv.internal.h"
+#include "libc/cosmo.h"
 #include "libc/dce.h"
 #include "libc/errno.h"
 #include "libc/intrin/atomic.h"
 #include "libc/intrin/weaken.h"
 #include "libc/limits.h"
 #include "libc/runtime/syslib.internal.h"
+#include "libc/sysv/consts/clock.h"
 #include "libc/sysv/errfuns.h"
 #include "libc/thread/semaphore.h"
 #include "libc/thread/thread.h"
-#include "third_party/nsync/futex.internal.h"
 
 static void sem_delay(int n) {
   volatile int i;
@@ -58,7 +59,7 @@ static void sem_timedwait_cleanup(void *arg) {
  * @cancelationpoint
  */
 int sem_timedwait(sem_t *sem, const struct timespec *abstime) {
-  int i, v, rc, e = errno;
+  int v, rc, e = errno;
 
 #if 0
   if (IsXnuSilicon() && sem->sem_magic == SEM_MAGIC_KERNEL) {
@@ -102,16 +103,13 @@ int sem_timedwait(sem_t *sem, const struct timespec *abstime) {
   }
 #endif
 
-  for (i = 0; i < 7; ++i) {
-    rc = sem_trywait(sem);
-    if (!rc) {
-      return rc;
-    } else if (errno == EAGAIN) {
-      errno = e;
-      sem_delay(i);
-    } else {
-      return rc;
-    }
+  rc = sem_trywait(sem);
+  if (!rc) {
+    return rc;
+  } else if (errno == EAGAIN) {
+    errno = e;
+  } else {
+    return rc;
   }
 
   BEGIN_CANCELATION_POINT;
@@ -121,7 +119,8 @@ int sem_timedwait(sem_t *sem, const struct timespec *abstime) {
 
   do {
     if (!(v = atomic_load_explicit(&sem->sem_value, memory_order_relaxed))) {
-      rc = nsync_futex_wait_(&sem->sem_value, v, true, abstime);
+      rc = cosmo_futex_wait(&sem->sem_value, v, sem->sem_pshared,
+                            CLOCK_REALTIME, abstime);
       if (rc == -EINTR || rc == -ECANCELED) {
         errno = -rc;
         rc = -1;

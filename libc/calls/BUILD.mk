@@ -48,12 +48,13 @@ LIBC_CALLS_A_DIRECTDEPS =				\
 	LIBC_NT_PDH					\
 	LIBC_NT_POWRPROF				\
 	LIBC_NT_PSAPI					\
+	LIBC_NT_REALTIME				\
 	LIBC_NT_SYNCHRONIZATION				\
 	LIBC_NT_WS2_32					\
 	LIBC_STR					\
 	LIBC_SYSV					\
 	LIBC_SYSV_CALLS					\
-	THIRD_PARTY_COMPILER_RT
+	THIRD_PARTY_COMPILER_RT				\
 
 LIBC_CALLS_A_DEPS :=					\
 	$(call uniq,$(foreach x,$(LIBC_CALLS_A_DIRECTDEPS),$($(x))))
@@ -215,12 +216,6 @@ o//libc/calls/writev.o: private				\
 			-mgeneral-regs-only
 
 # these assembly files are safe to build on aarch64
-o/$(MODE)/libc/calls/getcontext.o: libc/calls/getcontext.S
-	@$(COMPILE) -AOBJECTIFY.S $(OBJECTIFY.S) $(OUTPUT_OPTION) -c $<
-o/$(MODE)/libc/calls/swapcontext.o: libc/calls/swapcontext.S
-	@$(COMPILE) -AOBJECTIFY.S $(OBJECTIFY.S) $(OUTPUT_OPTION) -c $<
-o/$(MODE)/libc/calls/tailcontext.o: libc/calls/tailcontext.S
-	@$(COMPILE) -AOBJECTIFY.S $(OBJECTIFY.S) $(OUTPUT_OPTION) -c $<
 o/$(MODE)/libc/calls/stackjump.o: libc/calls/stackjump.S
 	@$(COMPILE) -AOBJECTIFY.S $(OBJECTIFY.S) $(OUTPUT_OPTION) -c $<
 

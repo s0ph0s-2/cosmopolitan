@@ -29,7 +29,7 @@
 #include "libc/nt/struct/iocounters.h"
 #include "libc/nt/struct/processmemorycounters.h"
 #include "libc/nt/thread.h"
-#include "libc/proc/proc.internal.h"
+#include "libc/proc/proc.h"
 #include "libc/str/str.h"
 #include "libc/sysv/consts/rusage.h"
 #include "libc/sysv/errfuns.h"
@@ -58,9 +58,8 @@ textwindows int sys_getrusage_nt(int who, struct rusage *usage) {
     return einval();
   }
 
-  if (!usage) {
+  if (!usage)
     return 0;
-  }
 
   if (!(who == RUSAGE_THREAD ? GetThreadTimes : GetProcessTimes)(
           me, &ftCreation, &ftExit, &ftKernel, &ftUser) ||

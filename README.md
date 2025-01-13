@@ -7,8 +7,8 @@
 a build-once run-anywhere language, like Java, except it doesn't need an
 interpreter or virtual machine. Instead, it reconfigures stock GCC and
 Clang to output a POSIX-approved polyglot format that runs natively on
-Linux + Mac + Windows + FreeBSD + OpenBSD + NetBSD + BIOS with the best
-possible performance and the tiniest footprint imaginable.
+Linux + Mac + Windows + FreeBSD + OpenBSD 7.3 + NetBSD + BIOS with the
+best possible performance and the tiniest footprint imaginable.
 
 ## Background
 
@@ -87,14 +87,21 @@ ape/apeinstall.sh
 ```
 
 You can now build the mono repo with any modern version of GNU Make. To
-make life easier, we've included one in the cosmocc toolchain, which is
-guaranteed to be compatible and furthermore includes our extensions for
-doing build system sandboxing.
+bootstrap your build, you can install Cosmopolitan Make from this site:
+
+https://cosmo.zip/pub/cosmos/bin/make
+
+E.g.:
 
 ```sh
-build/bootstrap/make -j8
+curl -LO https://cosmo.zip/pub/cosmos/bin/make
+./make -j8
 o//examples/hello
 ```
+
+After you've built the repo once, you can also use the make from your
+cosmocc at `.cosmocc/current/bin/make`. You might even prefer to alias
+make to `$COSMO/.cosmocc/current/bin/make`.
 
 Since the Cosmopolitan repository is very large, you might only want to
 build one particular thing. Here's an example of a target that can be
@@ -103,7 +110,7 @@ depends on core LIBC packages.
 
 ```sh
 rm -rf o//libc o//test
-build/bootstrap/make o//test/posix/signal_test
+.cosmocc/current/bin/make o//test/posix/signal_test
 o//test/posix/signal_test
 ```
 
@@ -112,21 +119,21 @@ list out each individual one. For example if you wanted to build and run
 all the unit tests in the `TEST_POSIX` package, you could say:
 
 ```sh
-build/bootstrap/make o//test/posix
+.cosmocc/current/bin/make o//test/posix
 ```
 
 Cosmopolitan provides a variety of build modes. For example, if you want
 really tiny binaries (as small as 12kb in size) then you'd say:
 
 ```sh
-build/bootstrap/make m=tiny
+.cosmocc/current/bin/make m=tiny
 ```
 
 You can furthermore cut out the bloat of other operating systems, and
 have Cosmopolitan become much more similar to Musl Libc.
 
 ```sh
-build/bootstrap/make m=tinylinux
+.cosmocc/current/bin/make m=tinylinux
 ```
 
 For further details, see [//build/config.mk](build/config.mk).
@@ -242,16 +249,16 @@ server. You're welcome to join us! <https://discord.gg/FwAVVu7eJ4>
 
 ## Support Vector
 
-| Platform       | Min Version | Circa |
-| :---           | ---:        | ---:  |
-| AMD            | K8          | 2003  |
-| Intel          | Core        | 2006  |
-| Linux          | 2.6.18      | 2007  |
-| Windows        | 8 [1]       | 2012  |
-| Darwin (macOS) | 23.1.0+     | 2023  |
-| OpenBSD        | 7           | 2021  |
-| FreeBSD        | 13          | 2020  |
-| NetBSD         | 9.2         | 2021  |
+| Platform       | Min Version    | Circa |
+| :---           | ---:           | ---:  |
+| AMD            | K8             | 2003  |
+| Intel          | Core           | 2006  |
+| Linux          | 2.6.18         | 2007  |
+| Windows        | 8 [1]          | 2012  |
+| Darwin (macOS) | 23.1.0+        | 2023  |
+| OpenBSD        | 7.3 or earlier | 2023  |
+| FreeBSD        | 13             | 2020  |
+| NetBSD         | 9.2            | 2021  |
 
 [1] See our [vista branch](https://github.com/jart/cosmopolitan/tree/vista)
     for a community supported version of Cosmopolitan that works on Windows

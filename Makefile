@@ -77,7 +77,8 @@ COMMA := ,
 PWD := $(shell pwd)
 
 # detect wsl2 running cosmopolitan binaries on the host by checking whether:
-# - user ran build/bootstrap/make, in which case make's working directory is in wsl
+# - user ran .cosmocc/current/bin/make, in which case make's working directory
+#   is in wsl
 # - user ran make, in which case cocmd's working directory is in wsl
 ifneq ($(findstring //wsl.localhost/,$(CURDIR) $(PWD)),)
 $(warning wsl2 interop is enabled)
@@ -89,7 +90,7 @@ UNAME_S := $(shell uname -s)
 
 # apple still distributes a 17 year old version of gnu make
 ifeq ($(MAKE_VERSION), 3.81)
-$(error please use build/bootstrap/make)
+$(error please use https://cosmo.zip/pub/cosmos/bin/make)
 endif
 
 LC_ALL = C
@@ -135,7 +136,7 @@ ARCH = aarch64
 HOSTS ?= pi pi5 studio freebsdarm
 else
 ARCH = x86_64
-HOSTS ?= freebsd rhel7 xnu openbsd netbsd win10
+HOSTS ?= freebsd rhel7 xnu openbsd netbsd win10 luna
 endif
 
 ZIPOBJ_FLAGS += -a$(ARCH)
@@ -147,10 +148,10 @@ export MODE
 export SOURCE_DATE_EPOCH
 export TMPDIR
 
-COSMOCC = .cosmocc/3.8.0
+COSMOCC = .cosmocc/3.9.2
 BOOTSTRAP = $(COSMOCC)/bin
 TOOLCHAIN = $(COSMOCC)/bin/$(ARCH)-linux-cosmo-
-DOWNLOAD := $(shell build/download-cosmocc.sh $(COSMOCC) 3.8.0 813c6b2f95062d2e0a845307a79505424cb98cb038e8013334f8a22e3b92a474)
+DOWNLOAD := $(shell build/download-cosmocc.sh $(COSMOCC) 3.9.2 f4ff13af65fcd309f3f1cfd04275996fb7f72a4897726628a8c9cf732e850193)
 
 IGNORE := $(shell $(MKDIR) $(TMPDIR))
 
@@ -275,10 +276,16 @@ include third_party/rxi_vec/BUILD.mk
 include libc/sock/BUILD.mk			#─┐
 include net/http/BUILD.mk			# ├──ONLINE RUNTIME
 include third_party/musl/BUILD.mk		# │  You can communicate with the network
+include third_party/regex/BUILD.mk		# │
+include third_party/tr/BUILD.mk			# │
+include third_party/sed/BUILD.mk		# │
+include libc/system/BUILD.mk			# │
 include libc/x/BUILD.mk				# │
 include dsp/scale/BUILD.mk			# │
 include dsp/mpeg/BUILD.mk			# │
 include dsp/tty/BUILD.mk			# │
+include dsp/audio/BUILD.mk			# │
+include dsp/prog/BUILD.mk			# │
 include dsp/BUILD.mk				# │
 include third_party/libwebp/BUILD.mk		# │
 include third_party/stb/BUILD.mk		# │
@@ -293,8 +300,7 @@ include third_party/libcxx/BUILD.mk		# │
 include third_party/openmp/BUILD.mk		# │
 include third_party/pcre/BUILD.mk		# │
 include third_party/less/BUILD.mk		# │
-include net/https/BUILD.mk			# │
-include third_party/regex/BUILD.mk		#─┘
+include net/https/BUILD.mk			#─┘
 include third_party/tidy/BUILD.mk
 include tool/img/lib/BUILD.mk
 include tool/img/BUILD.mk
@@ -315,8 +321,6 @@ include third_party/double-conversion/test/BUILD.mk
 include third_party/lua/BUILD.mk
 include third_party/tree/BUILD.mk
 include third_party/zstd/BUILD.mk
-include third_party/tr/BUILD.mk
-include third_party/sed/BUILD.mk
 include third_party/awk/BUILD.mk
 include third_party/hiredis/BUILD.mk
 include third_party/make/BUILD.mk
@@ -369,6 +373,7 @@ include test/libc/fmt/BUILD.mk
 include test/libc/time/BUILD.mk
 include test/libc/proc/BUILD.mk
 include test/libc/stdio/BUILD.mk
+include test/libc/system/BUILD.mk
 include test/libc/BUILD.mk
 include test/net/http/BUILD.mk
 include test/net/https/BUILD.mk
@@ -432,68 +437,71 @@ HTAGS:	o/$(MODE)/hdrs-old.txt $(filter-out third_party/libcxx/%,$(HDRS)) #o/$(MO
 
 loc: private .UNSANDBOXED = 1
 loc: o/$(MODE)/tool/build/summy
-	find -name \*.h -or -name \*.c -or -name \*.S | \
+	find -name \*.h -or -name \*.hpp -or -name \*.c -or -name \*.cc -or -name \*.cpp -or -name \*.S -or -name \*.mk | \
 	$(XARGS) wc -l | grep total | awk '{print $$1}' | $<
 
-# PLEASE: MAINTAIN TOPOLOGICAL ORDER
-# FROM HIGHEST LEVEL TO LOWEST LEVEL
-COSMOPOLITAN_OBJECTS =			\
+COSMOPOLITAN =				\
 	CTL				\
-	THIRD_PARTY_DOUBLECONVERSION	\
-	THIRD_PARTY_OPENMP		\
-	TOOL_ARGS			\
-	NET_HTTP			\
-	LIBC_SOCK			\
-	LIBC_NT_WS2_32			\
-	LIBC_NT_IPHLPAPI		\
-	LIBC_X				\
-	THIRD_PARTY_GETOPT		\
+	DSP_AUDIO			\
+	LIBC_CALLS			\
+	LIBC_DLOPEN			\
+	LIBC_ELF			\
+	LIBC_FMT			\
+	LIBC_INTRIN			\
+	LIBC_IRQ			\
 	LIBC_LOG			\
-	THIRD_PARTY_TZ			\
-	THIRD_PARTY_MUSL		\
-	THIRD_PARTY_ZLIB_GZ		\
+	LIBC_MEM			\
+	LIBC_NEXGEN32E			\
+	LIBC_NT_ADVAPI32		\
+	LIBC_NT_BCRYPTPRIMITIVES	\
+	LIBC_NT_COMDLG32		\
+	LIBC_NT_GDI32			\
+	LIBC_NT_IPHLPAPI		\
+	LIBC_NT_KERNEL32		\
+	LIBC_NT_NTDLL			\
+	LIBC_NT_PDH			\
+	LIBC_NT_POWRPROF		\
+	LIBC_NT_PSAPI			\
+	LIBC_NT_REALTIME		\
+	LIBC_NT_SHELL32			\
+	LIBC_NT_SYNCHRONIZATION		\
+	LIBC_NT_USER32			\
+	LIBC_NT_WS2_32			\
+	LIBC_PROC			\
+	LIBC_RUNTIME			\
+	LIBC_SOCK			\
+	LIBC_STDIO			\
+	LIBC_STR			\
+	LIBC_SYSTEM			\
+	LIBC_SYSV			\
+	LIBC_SYSV_CALLS			\
+	LIBC_THREAD			\
+	LIBC_TINYMATH			\
+	LIBC_VGA			\
+	LIBC_X				\
+	NET_HTTP			\
+	THIRD_PARTY_COMPILER_RT		\
+	THIRD_PARTY_DLMALLOC		\
+	THIRD_PARTY_DOUBLECONVERSION	\
+	THIRD_PARTY_GDTOA		\
+	THIRD_PARTY_GETOPT		\
 	THIRD_PARTY_LIBCXXABI		\
 	THIRD_PARTY_LIBUNWIND		\
-	LIBC_STDIO			\
-	THIRD_PARTY_GDTOA		\
-	THIRD_PARTY_REGEX		\
-	LIBC_THREAD			\
-	LIBC_PROC			\
-	THIRD_PARTY_NSYNC_MEM		\
-	LIBC_MEM			\
-	THIRD_PARTY_DLMALLOC		\
-	LIBC_DLOPEN			\
-	LIBC_RUNTIME			\
+	THIRD_PARTY_MUSL		\
 	THIRD_PARTY_NSYNC		\
-	LIBC_ELF			\
-	LIBC_IRQ			\
-	LIBC_CALLS			\
-	LIBC_SYSV_CALLS			\
-	LIBC_VGA			\
-	LIBC_NT_PSAPI			\
-	LIBC_NT_POWRPROF		\
-	LIBC_NT_PDH			\
-	LIBC_NT_GDI32			\
-	LIBC_NT_COMDLG32		\
-	LIBC_NT_USER32			\
-	LIBC_NT_NTDLL			\
-	LIBC_NT_ADVAPI32		\
-	LIBC_NT_SYNCHRONIZATION		\
-	LIBC_FMT			\
-	THIRD_PARTY_ZLIB		\
+	THIRD_PARTY_NSYNC_MEM		\
+	THIRD_PARTY_OPENMP		\
 	THIRD_PARTY_PUFF		\
-	THIRD_PARTY_COMPILER_RT		\
-	LIBC_TINYMATH			\
+	THIRD_PARTY_REGEX		\
+	THIRD_PARTY_TZ			\
 	THIRD_PARTY_XED			\
-	LIBC_STR			\
-	LIBC_SYSV			\
-	LIBC_INTRIN			\
-	LIBC_NT_BCRYPTPRIMITIVES	\
-	LIBC_NT_KERNEL32		\
-	LIBC_NEXGEN32E
+	THIRD_PARTY_ZLIB		\
+	THIRD_PARTY_ZLIB_GZ		\
+	TOOL_ARGS			\
 
 COSMOPOLITAN_H_PKGS =			\
 	APE				\
+	DSP_AUDIO			\
 	LIBC				\
 	LIBC_CALLS			\
 	LIBC_ELF			\
@@ -537,7 +545,7 @@ COSMOCC_PKGS =				\
 	THIRD_PARTY_INTEL
 
 o/$(MODE)/cosmopolitan.a:		\
-		$(foreach x,$(COSMOPOLITAN_OBJECTS),$($(x)_A_OBJS))
+		$(call reverse,$(call uniq,$(foreach x,$(COSMOPOLITAN),$($(x)))))
 
 COSMOCC_HDRS =								\
 	$(wildcard libc/integral/*)					\

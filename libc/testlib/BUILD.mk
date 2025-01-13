@@ -27,10 +27,12 @@ LIBC_TESTLIB_A_HDRS =						\
 	libc/testlib/ezbench.h					\
 	libc/testlib/fastrandomstring.h				\
 	libc/testlib/hyperion.h					\
+	libc/testlib/manystack.h				\
 	libc/testlib/moby.h					\
 	libc/testlib/subprocess.h				\
 	libc/testlib/testlib.h					\
-	libc/testlib/viewables.h
+	libc/testlib/trace.h					\
+	libc/testlib/viewables.h				\
 
 LIBC_TESTLIB_A_SRCS_S =						\
 	libc/testlib/bench.S					\
@@ -50,6 +52,7 @@ LIBC_TESTLIB_A_SRCS_C =						\
 	libc/testlib/clearxmmregisters.c			\
 	libc/testlib/contains.c					\
 	libc/testlib/endswith.c					\
+	libc/testlib/exactlyequallongdouble.c		 	\
 	libc/testlib/extract.c					\
 	libc/testlib/ezbenchcontrol.c				\
 	libc/testlib/ezbenchreport.c				\
@@ -68,6 +71,7 @@ LIBC_TESTLIB_A_SRCS_C =						\
 	libc/testlib/globals.c					\
 	libc/testlib/hexequals.c				\
 	libc/testlib/incrementfailed.c				\
+	libc/testlib/manystack.c				\
 	libc/testlib/memoryexists.c				\
 	libc/testlib/seterrno.c					\
 	libc/testlib/shoulddebugbreak.c				\
@@ -79,9 +83,10 @@ LIBC_TESTLIB_A_SRCS_C =						\
 	libc/testlib/testrunner.c				\
 	libc/testlib/thunks.c					\
 	libc/testlib/tmptest.c					\
+	libc/testlib/trace.c					\
 	libc/testlib/waitforexit.c				\
 	libc/testlib/waitforterm.c				\
-	libc/testlib/yield.c
+	libc/testlib/yield.c					\
 
 LIBC_TESTLIB_A_SRCS =						\
 	$(LIBC_TESTLIB_A_SRCS_S)				\
@@ -107,13 +112,15 @@ LIBC_TESTLIB_A_DIRECTDEPS =					\
 	LIBC_STR						\
 	LIBC_SYSV						\
 	LIBC_SYSV_CALLS						\
+	LIBC_THREAD						\
 	LIBC_TINYMATH						\
 	LIBC_X							\
 	THIRD_PARTY_COMPILER_RT					\
 	THIRD_PARTY_DLMALLOC					\
 	THIRD_PARTY_GDTOA					\
+	THIRD_PARTY_MUSL					\
+	THIRD_PARTY_TZ						\
 	THIRD_PARTY_XED						\
-	THIRD_PARTY_TZ
 
 LIBC_TESTLIB_A_DEPS :=						\
 	$(call uniq,$(foreach x,$(LIBC_TESTLIB_A_DIRECTDEPS),$($(x))))
@@ -208,6 +215,7 @@ LIBC_TESTMAIN_DIRECTDEPS =					\
 	LIBC_LOG						\
 	LIBC_MEM						\
 	LIBC_NEXGEN32E						\
+	LIBC_PROC						\
 	LIBC_RUNTIME						\
 	LIBC_STDIO						\
 	LIBC_SYSV						\
@@ -215,7 +223,7 @@ LIBC_TESTMAIN_DIRECTDEPS =					\
 	LIBC_TESTLIB						\
 	LIBC_TESTLIB_RUNNER					\
 	THIRD_PARTY_DLMALLOC					\
-	THIRD_PARTY_GETOPT
+	THIRD_PARTY_GETOPT					\
 
 LIBC_TESTMAIN_DEPS :=						\
 	$(call uniq,$(foreach x,$(LIBC_TESTMAIN_DIRECTDEPS),$($(x))))

@@ -174,18 +174,18 @@ fetch() {
 OLD=$PWD
 cd "$OUTDIR/"
 if [ ! -x bin/x86_64-linux-cosmo-gcc ]; then
-  fetch https://github.com/ahgamut/superconfigure/releases/download/z0.0.54/aarch64-gcc.zip &
-  fetch https://github.com/ahgamut/superconfigure/releases/download/z0.0.54/x86_64-gcc.zip &
-  fetch https://github.com/ahgamut/superconfigure/releases/download/z0.0.54/llvm.zip &
+  fetch https://github.com/ahgamut/superconfigure/releases/download/z0.0.60/aarch64-gcc.zip &
+  fetch https://github.com/ahgamut/superconfigure/releases/download/z0.0.60/x86_64-gcc.zip &
+  fetch https://github.com/ahgamut/superconfigure/releases/download/z0.0.60/llvm.zip &
   wait
   unzip aarch64-gcc.zip &
   unzip x86_64-gcc.zip &
-  unzip llvm.zip bin/clang-19 &
+  unzip llvm.zip bin/clang-19 bin/clang-format &
   wait
   rm -f aarch64-gcc.zip
   rm -f x86_64-gcc.zip
   rm -f llvm.zip
-  mv bin/clang-19 bin/cosmo-clang
+  mv bin/clang-19 libexec/clang  # use `cosmocc -mclang` instead
 fi
 rm -f bin/*-cpp
 rm -f bin/*-gcc-*

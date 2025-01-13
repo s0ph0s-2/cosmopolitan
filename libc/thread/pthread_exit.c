@@ -18,10 +18,13 @@
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/assert.h"
 #include "libc/atomic.h"
+#include "libc/calls/calls.h"
+#include "libc/cosmo.h"
 #include "libc/cxxabi.h"
 #include "libc/dce.h"
 #include "libc/intrin/atomic.h"
 #include "libc/intrin/cxaatexit.h"
+#include "libc/intrin/describebacktrace.h"
 #include "libc/intrin/strace.h"
 #include "libc/intrin/weaken.h"
 #include "libc/limits.h"
@@ -33,7 +36,6 @@
 #include "libc/thread/posixthread.internal.h"
 #include "libc/thread/thread.h"
 #include "libc/thread/tls.h"
-#include "third_party/nsync/futex.internal.h"
 #include "third_party/nsync/wait_s.internal.h"
 
 /**
@@ -69,7 +71,7 @@
  * @noreturn
  */
 wontreturn void pthread_exit(void *rc) {
-  int orphan;
+  unsigned population;
   struct CosmoTib *tib;
   struct PosixThread *pt;
   enum PosixThreadStatus status, transition;
@@ -88,16 +90,29 @@ wontreturn void pthread_exit(void *rc) {
 
   // set state
   pt->pt_flags |= PT_NOCANCEL | PT_EXITING;
-  pt->pt_rc = rc;
+  pt->pt_val = rc;
 
   // free resources
   __cxa_thread_finalize();
 
   // run atexit handlers if orphaned thread
-  _pthread_decimate(true);
-  if ((orphan = pthread_orphan_np()))
-    if (_weaken(__cxa_finalize))
-      _weaken(__cxa_finalize)(NULL);
+  // notice how we avoid acquiring the pthread gil
+  if (!(population = atomic_fetch_sub(&_pthread_count, 1) - 1)) {
+    // we know for certain we're an orphan. any other threads that
+    // exist, will terminate and clear their tid very soon. but some
+    // goofball could spawn more threads from atexit() handlers. we'd
+    // also like to avoid looping forever here, by auto-joining threads
+    // that leaked, because the user forgot to join them or detach them
+    for (;;) {
+      if (_weaken(__cxa_finalize))
+        _weaken(__cxa_finalize)(NULL);
+      _pthread_decimate(kPosixThreadTerminated);
+      if (pthread_orphan_np()) {
+        population = atomic_load(&_pthread_count);
+        break;
+      }
+    }
+  }
 
   // transition the thread to a terminated state
   status = atomic_load_explicit(&pt->pt_status, memory_order_acquire);
@@ -127,7 +142,7 @@ wontreturn void pthread_exit(void *rc) {
   //  thread has been terminated. The behavior shall be as if the
   //  implementation called exit() with a zero argument at thread
   //  termination time." ──Quoth POSIX.1-2017
-  if (orphan) {
+  if (!population) {
     for (int i = __fini_array_end - __fini_array_start; i--;)
       ((void (*)(void))__fini_array_start[i])();
     _Exit(0);
@@ -136,14 +151,14 @@ wontreturn void pthread_exit(void *rc) {
   // check if the main thread has died whilst children live
   // note that the main thread is joinable by child threads
   if (pt->pt_flags & PT_STATIC) {
-    atomic_store_explicit(&tib->tib_tid, 0, memory_order_release);
-    nsync_futex_wake_((atomic_int *)&tib->tib_tid, INT_MAX,
-                      !IsWindows() && !IsXnu());
+    atomic_store_explicit(&tib->tib_ctid, 0, memory_order_release);
+    cosmo_futex_wake((atomic_int *)&tib->tib_ctid, INT_MAX,
+                     !IsWindows() && !IsXnu());
     _Exit1(0);
   }
 
   // this is a child thread
-  longjmp(pt->pt_exiter, 1);
+  __builtin_longjmp(pt->pt_exiter, 1);
 }
 
 __weak_reference(pthread_exit, thr_exit);

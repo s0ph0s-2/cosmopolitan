@@ -38,6 +38,7 @@
 #include "libc/nt/winsock.h"
 #include "libc/sock/internal.h"
 #include "libc/sock/sendfile.internal.h"
+#include "libc/sock/syscall_fd.internal.h"
 #include "libc/sock/wsaid.internal.h"
 #include "libc/stdio/sysparam.h"
 #include "libc/sysv/errfuns.h"
@@ -58,7 +59,7 @@ static void transmitfile_init(void) {
   g_transmitfile.lpTransmitFile = __get_wsaid(&TransmitfileGuid);
 }
 
-static dontinline textwindows ssize_t sys_sendfile_nt(
+textwindows dontinline static ssize_t sys_sendfile_nt(
     int outfd, int infd, int64_t *opt_in_out_inoffset, uint32_t uptobytes) {
   ssize_t rc;
   uint32_t flags = 0;
@@ -91,9 +92,10 @@ static dontinline textwindows ssize_t sys_sendfile_nt(
   }
   struct NtOverlapped ov = {.hEvent = WSACreateEvent(), .Pointer = offset};
   cosmo_once(&g_transmitfile.once, transmitfile_init);
-  if (g_transmitfile.lpTransmitFile(oh, ih, uptobytes, 0, &ov, 0, 0) ||
-      WSAGetLastError() == kNtErrorIoPending ||
-      WSAGetLastError() == WSAEINPROGRESS) {
+  if (ov.hEvent &&
+      (g_transmitfile.lpTransmitFile(oh, ih, uptobytes, 0, &ov, 0, 0) ||
+       WSAGetLastError() == kNtErrorIoPending ||
+       WSAGetLastError() == WSAEINPROGRESS)) {
     if (WSAGetOverlappedResult(oh, &ov, &uptobytes, true, &flags)) {
       rc = uptobytes;
       if (opt_in_out_inoffset) {

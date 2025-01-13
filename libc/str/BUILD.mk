@@ -12,16 +12,19 @@ LIBC_STR_A_INCS = $(filter %.inc,$(LIBC_STR_A_FILES))
 LIBC_STR_A_SRCS_A = $(filter %.s,$(LIBC_STR_A_FILES))
 LIBC_STR_A_SRCS_S = $(filter %.S,$(LIBC_STR_A_FILES))
 LIBC_STR_A_SRCS_C = $(filter %.c,$(LIBC_STR_A_FILES))
+LIBC_STR_A_SRCS_CC = $(filter %.cc,$(LIBC_STR_A_FILES))
 
 LIBC_STR_A_SRCS =						\
 	$(LIBC_STR_A_SRCS_A)					\
 	$(LIBC_STR_A_SRCS_S)					\
-	$(LIBC_STR_A_SRCS_C)
+	$(LIBC_STR_A_SRCS_C)					\
+	$(LIBC_STR_A_SRCS_CC)
 
 LIBC_STR_A_OBJS =						\
 	$(LIBC_STR_A_SRCS_A:%.s=o/$(MODE)/%.o)			\
 	$(LIBC_STR_A_SRCS_S:%.S=o/$(MODE)/%.o)			\
-	$(LIBC_STR_A_SRCS_C:%.c=o/$(MODE)/%.o)
+	$(LIBC_STR_A_SRCS_C:%.c=o/$(MODE)/%.o)			\
+	$(LIBC_STR_A_SRCS_CC:%.cc=o/$(MODE)/%.o)
 
 LIBC_STR_A_CHECKS =						\
 	$(LIBC_STR_A).pkg					\
@@ -74,13 +77,7 @@ o/$(MODE)/libc/str/iswseparator.o: private			\
 
 # ensure that division is optimized
 o/$(MODE)/libc/str/bcmp.o					\
-o/$(MODE)/libc/str/strcmp.o					\
-o/$(MODE)/libc/str/windowsdurationtotimeval.o			\
-o/$(MODE)/libc/str/windowsdurationtotimespec.o			\
-o/$(MODE)/libc/str/timevaltowindowstime.o			\
-o/$(MODE)/libc/str/timespectowindowstime.o			\
-o/$(MODE)/libc/str/windowstimetotimeval.o			\
-o/$(MODE)/libc/str/windowstimetotimespec.o: private		\
+o/$(MODE)/libc/str/strcmp.o: private				\
 		CFLAGS +=					\
 			-O2
 

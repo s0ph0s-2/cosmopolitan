@@ -42,6 +42,7 @@ TOOL_BUILD_DIRECTDEPS =							\
 	LIBC_SOCK							\
 	LIBC_STDIO							\
 	LIBC_STR							\
+	LIBC_SYSTEM							\
 	LIBC_SYSV							\
 	LIBC_SYSV_CALLS							\
 	LIBC_THREAD							\
@@ -60,7 +61,7 @@ TOOL_BUILD_DIRECTDEPS =							\
 	THIRD_PARTY_XED							\
 	THIRD_PARTY_ZLIB						\
 	THIRD_PARTY_ZLIB_GZ						\
-	TOOL_BUILD_LIB
+	TOOL_BUILD_LIB							\
 
 TOOL_BUILD_DEPS :=							\
 	$(call uniq,$(foreach x,$(TOOL_BUILD_DIRECTDEPS),$($(x))))
@@ -86,9 +87,11 @@ o/$(MODE)/tool/build/cocmd.zip.o: private				\
 
 # we need pic because:
 #   so it can be an LD_PRELOAD payload
+# we need fsanitize-trap=all becuase:
+#   so we don't need to pull in the entire ubsan runtime
 o/$(MODE)/tool/build/dso/sandbox.o: private				\
 		CFLAGS +=						\
-			-fPIC
+			-fPIC -fsanitize-trap=all
 
 o/$(MODE)/tool/build/dso/sandbox.o:					\
 		libc/calls/calls.h					\
@@ -135,8 +138,8 @@ o/$(MODE)/tool/build/dso/dlopen_helper.so:				\
 		o/$(MODE)/tool/build/dso/dlopen_helper.o		\
 		$(OUTPUT_OPTION)
 
-o/$(MODE)/tool/build/dlopen_test.runs:					\
-		o/$(MODE)/tool/build/dlopen_test			\
+o/$(MODE)/tool/build/dlopen_tester.runs:				\
+		o/$(MODE)/tool/build/dlopen_tester			\
 		o/$(MODE)/tool/build/dso/dlopen_helper.so
 	$< o/$(MODE)/tool/build/dso/dlopen_helper.so
 

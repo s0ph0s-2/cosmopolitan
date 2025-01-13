@@ -13,6 +13,7 @@
 // TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 // PERFORMANCE OF THIS SOFTWARE.
 
+#include <cosmo.h>
 #include <signal.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -36,6 +37,7 @@ void on_unexpected_death(int sig) {
 }
 
 int main() {
+
   signal(SIGCHLD, on_unexpected_death);
 
   // extract test program

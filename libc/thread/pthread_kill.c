@@ -24,6 +24,7 @@
 #include "libc/intrin/atomic.h"
 #include "libc/intrin/describeflags.h"
 #include "libc/intrin/strace.h"
+#include "libc/runtime/internal.h"
 #include "libc/runtime/syslib.internal.h"
 #include "libc/sysv/consts/sicode.h"
 #include "libc/thread/posixthread.internal.h"
@@ -43,7 +44,15 @@ errno_t pthread_kill(pthread_t thread, int sig) {
   int err = 0;
   struct PosixThread *pt;
   pt = (struct PosixThread *)thread;
-  if (!(1 <= sig && sig <= 64)) {
+  if (pt)
+    _pthread_ref(pt);
+  if (!thread) {
+    // avoid crashing on easily predictable npe
+    // chances are you need a barrier to synchronize startup
+    err = EFAULT;
+  } else if (!(1 <= sig && sig <= 64)) {
+    // cosmo only supports this many signals
+    // some platforms have more but we're not sure what they do
     err = EINVAL;
   } else if (thread == __get_tls()->tib_pthread) {
     err = raise(sig);  // XNU will EDEADLK it otherwise
@@ -56,17 +65,25 @@ errno_t pthread_kill(pthread_t thread, int sig) {
     if (IsXnuSilicon()) {
       err = __syslib->__pthread_kill(_pthread_syshand(pt), sig);
     } else {
+      int r = 0;
       int e = errno;
-      if (sys_tkill(_pthread_tid(pt), sig, pt->tib)) {
+      int tid = _pthread_tid(pt);
+      if (IsLinux() || IsFreebsd()) {
+        r = sys_tgkill(__pid, tid, sig);
+      } else {
+        r = sys_tkill(tid, sig, pt->tib);
+      }
+      if (r) {
         err = errno;
         errno = e;
       }
     }
-    if (err == ESRCH) {
+    if (err == ESRCH)
       err = 0;  // we already reported this
-    }
   }
   STRACE("pthread_kill(%d, %G) → %s", _pthread_tid(pt), sig,
          DescribeErrno(err));
+  if (pt)
+    _pthread_unref(pt);
   return err;
 }

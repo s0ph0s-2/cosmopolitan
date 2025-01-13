@@ -19,6 +19,7 @@
 #include "libc/atomic.h"
 #include "libc/calls/calls.h"
 #include "libc/calls/struct/sigaction.h"
+#include "libc/calls/struct/sigaltstack.h"
 #include "libc/dce.h"
 #include "libc/errno.h"
 #include "libc/intrin/kprintf.h"
@@ -27,6 +28,7 @@
 #include "libc/nexgen32e/nexgen32e.h"
 #include "libc/runtime/internal.h"
 #include "libc/runtime/runtime.h"
+#include "libc/runtime/sysconf.h"
 #include "libc/sysv/consts/sig.h"
 #include "libc/testlib/testlib.h"
 #include "libc/thread/thread.h"
@@ -40,6 +42,8 @@ atomic_int gotcleanup;
 
 void SetUpOnce(void) {
   testlib_enable_tmp_setup_teardown();
+  pthread_mutex_init(&mu, 0);
+  pthread_cond_init(&cv, 0);
 }
 
 void SetUp(void) {
@@ -97,8 +101,6 @@ TEST(pthread_cancel, synchronous) {
 TEST(pthread_cancel, synchronous_deferred) {
   void *rc;
   pthread_t th;
-  if (!IsWindows())
-    return;
   ASSERT_SYS(0, 0, pipe(pfds));
   ASSERT_EQ(0, pthread_create(&th, 0, Worker, 0));
   while (!ready)
@@ -190,6 +192,7 @@ TEST(pthread_cancel, condDeferredWait_reacquiresMutex) {
   ASSERT_EQ(0, pthread_join(th, &rc));
   ASSERT_EQ(PTHREAD_CANCELED, rc);
   ASSERT_EQ(EBUSY, pthread_mutex_trylock(&mu));
+  ASSERT_EQ(0, pthread_mutex_consistent(&mu));
   ASSERT_EQ(0, pthread_mutex_unlock(&mu));
 }
 
@@ -202,6 +205,7 @@ TEST(pthread_cancel, condDeferredWaitDelayed) {
   ASSERT_EQ(0, pthread_join(th, &rc));
   ASSERT_EQ(PTHREAD_CANCELED, rc);
   ASSERT_EQ(EBUSY, pthread_mutex_trylock(&mu));
+  ASSERT_EQ(0, pthread_mutex_consistent(&mu));
   ASSERT_EQ(0, pthread_mutex_unlock(&mu));
 }
 

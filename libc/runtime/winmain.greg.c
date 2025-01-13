@@ -17,11 +17,11 @@
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/assert.h"
+#include "libc/atomic.h"
 #include "libc/calls/internal.h"
 #include "libc/calls/sig.internal.h"
 #include "libc/calls/syscall_support-nt.internal.h"
 #include "libc/intrin/dll.h"
-#include "libc/intrin/kprintf.h"
 #include "libc/intrin/maps.h"
 #include "libc/intrin/nomultics.h"
 #include "libc/intrin/weaken.h"
@@ -31,6 +31,7 @@
 #include "libc/nt/accounting.h"
 #include "libc/nt/console.h"
 #include "libc/nt/enum/consolemodeflags.h"
+#include "libc/nt/enum/creationdisposition.h"
 #include "libc/nt/enum/filemapflags.h"
 #include "libc/nt/enum/pageflags.h"
 #include "libc/nt/files.h"
@@ -51,6 +52,7 @@
 #include "libc/sock/internal.h"
 #include "libc/str/str.h"
 #include "libc/sysv/consts/prot.h"
+#include "libc/thread/tls.h"
 #ifdef __x86_64__
 
 #define abi __msabi textwindows dontinstrument
@@ -77,7 +79,7 @@ __msabi extern typeof(SetConsoleMode) *const __imp_SetConsoleMode;
 __msabi extern typeof(SetConsoleOutputCP) *const __imp_SetConsoleOutputCP;
 __msabi extern typeof(SetEnvironmentVariable) *const __imp_SetEnvironmentVariableW;
 __msabi extern typeof(SetStdHandle) *const __imp_SetStdHandle;
-__msabi extern typeof(VirtualProtect) *const __imp_VirtualProtect;
+__msabi extern typeof(VirtualProtectEx) *const __imp_VirtualProtectEx;
 __msabi extern typeof(WriteFile) *const __imp_WriteFile;
 // clang-format on
 
@@ -86,11 +88,15 @@ void __stack_call(int, char **, char **, long (*)[2],
                   void (*)(int, char **, char **, long (*)[2]),
                   intptr_t) wontreturn;
 
+bool __winmain_isfork;
+intptr_t __winmain_jmpbuf[5];
+struct CosmoTib *__winmain_tib;
+
 __funline int IsAlpha(int c) {
   return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z');
 }
 
-static abi char16_t *StrStr(const char16_t *haystack, const char16_t *needle) {
+abi static char16_t *StrStr(const char16_t *haystack, const char16_t *needle) {
   size_t i;
   for (;;) {
     for (i = 0;; ++i) {
@@ -107,13 +113,13 @@ static abi char16_t *StrStr(const char16_t *haystack, const char16_t *needle) {
   return 0;
 }
 
-static abi void PrintError(const char *s, size_t n) {
+abi static void PrintError(const char *s, size_t n) {
 #define PrintError(s) PrintError(s, sizeof(s) - 1)
   __imp_WriteFile(__imp_GetStdHandle(kNtStdErrorHandle), s, n, 0, 0);
 }
 
 // detect the unholiest of environments
-static abi bool32 IsWslChimera(void) {
+abi static bool32 IsWslChimera(void) {
   char16_t path[PATH_MAX];
   return __imp_GetCurrentDirectoryW(PATH_MAX, path) &&  //
          path[0] == '\\' &&                             //
@@ -124,7 +130,7 @@ static abi bool32 IsWslChimera(void) {
 }
 
 // returns true if utf-8 path is a win32-style path that exists
-static abi bool32 WinFileExists(const char *path) {
+abi static bool32 WinFileExists(const char *path) {
   uint16_t path16[PATH_MAX];
   size_t z = ARRAYLEN(path16);
   size_t n = tprecode8to16(path16, z, path).ax;
@@ -134,7 +140,7 @@ static abi bool32 WinFileExists(const char *path) {
 }
 
 // this ensures close(1) won't accidentally close(2) for example
-static abi void DeduplicateStdioHandles(void) {
+abi static void DeduplicateStdioHandles(void) {
   for (long i = 0; i < 3; ++i) {
     int64_t h1 = __imp_GetStdHandle(kNtStdio[i]);
     for (long j = i + 1; j < 3; ++j) {
@@ -149,19 +155,19 @@ static abi void DeduplicateStdioHandles(void) {
   }
 }
 
-static bool32 HasEnvironmentVariable(const char16_t *name) {
+abi static bool32 HasEnvironmentVariable(const char16_t *name) {
   char16_t buf[4];
   return __imp_GetEnvironmentVariableW(name, buf, ARRAYLEN(buf));
 }
 
-static abi unsigned OnWinCrash(struct NtExceptionPointers *ep) {
+abi static unsigned OnWinCrash(struct NtExceptionPointers *ep) {
   int code, sig = __sig_crash_sig(ep->ExceptionRecord->ExceptionCode, &code);
   TerminateThisProcess(sig);
 }
 
 // main function of windows init process
 // i.e. first process spawned that isn't forked
-static abi wontreturn void WinInit(const char16_t *cmdline) {
+abi wontreturn static void WinInit(const char16_t *cmdline) {
   __oldstack = (intptr_t)__builtin_frame_address(0);
 
   __imp_SetConsoleOutputCP(kNtCpUtf8);
@@ -200,11 +206,12 @@ static abi wontreturn void WinInit(const char16_t *cmdline) {
   int stackprot = (intptr_t)ape_stack_prot;
   if (~stackprot & PROT_EXEC) {
     uint32_t old;
-    __imp_VirtualProtect(stackaddr, stacksize, kNtPageReadwrite, &old);
+    __imp_VirtualProtectEx(GetCurrentProcess(), stackaddr, stacksize,
+                           kNtPageReadwrite, &old);
   }
   uint32_t oldattr;
-  __imp_VirtualProtect(stackaddr, GetGuardSize(),
-                       kNtPageReadwrite | kNtPageGuard, &oldattr);
+  __imp_VirtualProtectEx(GetCurrentProcess(), stackaddr, GetGuardSize(),
+                         kNtPageReadwrite | kNtPageGuard, &oldattr);
   if (_weaken(__maps_stack)) {
     struct NtSystemInfo si;
     __imp_GetSystemInfo(&si);
@@ -294,18 +301,51 @@ static abi wontreturn void WinInit(const char16_t *cmdline) {
                 ARRAYLEN(wa->envp) - 1);
   __imp_FreeEnvironmentStringsW(env16);
   __envp = &wa->envp[0];
-
   // handover control to cosmopolitan runtime
   __stack_call(count, wa->argv, wa->envp, wa->auxv, cosmo,
                (uintptr_t)(stackaddr + (stacksize - sizeof(struct WinArgs))));
 }
 
+static int Atoi(const char16_t *str) {
+  int c;
+  unsigned x = 0;
+  while ((c = *str++)) {
+    if ('0' <= c && c <= '9') {
+      x *= 10;
+      x += c - '0';
+    } else {
+      return -1;
+    }
+  }
+  return x;
+}
+
+abi static int WinGetPid(const char16_t *var, bool *out_is_inherited) {
+  uint32_t len;
+  char16_t val[12];
+  if ((len = __imp_GetEnvironmentVariableW(var, val, ARRAYLEN(val)))) {
+    int pid = -1;
+    if (len < ARRAYLEN(val))
+      pid = Atoi(val);
+    __imp_SetEnvironmentVariableW(var, NULL);
+    if (pid > 0) {
+      *out_is_inherited = true;
+      return pid;
+    }
+  }
+  *out_is_inherited = false;
+  return __imp_GetCurrentProcessId();
+}
+
 abi int64_t WinMain(int64_t hInstance, int64_t hPrevInstance,
                     const char *lpCmdLine, int64_t nCmdShow) {
+  static atomic_ulong fake_process_signals;
   const char16_t *cmdline;
   extern char os asm("__hostos");
   os = _HOSTWINDOWS;  // madness https://news.ycombinator.com/item?id=21019722
   kStartTsc = rdtsc();
+  __tls_enabled = false;
+  ftrace_enabled(-1);
   if (!IsTiny() && IsWslChimera()) {
     PrintError("error: APE is running on WIN32 inside WSL. You need to run: "
                "sudo sh -c 'echo -1 > /proc/sys/fs/binfmt_misc/WSLInterop'\n");
@@ -315,21 +355,24 @@ abi int64_t WinMain(int64_t hInstance, int64_t hPrevInstance,
   __imp_GetSystemInfo(&si);
   __pagesize = si.dwPageSize;
   __gransize = si.dwAllocationGranularity;
-  __umask = 077;
-  __pid = __imp_GetCurrentProcessId();
+  bool pid_is_inherited;
+  __pid = WinGetPid(u"_COSMO_PID", &pid_is_inherited);
+  if (!(__sig.process = __sig_map_process(__pid, kNtOpenAlways)))
+    __sig.process = &fake_process_signals;
+  if (__winmain_isfork)
+    __builtin_longjmp(__winmain_jmpbuf, 1);
+  if (!pid_is_inherited)
+    atomic_store_explicit(__sig.process, 0, memory_order_release);
   cmdline = __imp_GetCommandLineW();
 #if SYSDEBUG
   // sloppy flag-only check for early initialization
   if (StrStr(cmdline, u"--strace"))
     ++__strace;
 #endif
-  if (_weaken(WinSockInit)) {
+  ftrace_enabled(+1);
+  if (_weaken(WinSockInit))
     _weaken(WinSockInit)();
-  }
   DeduplicateStdioHandles();
-  if (_weaken(WinMainForked)) {
-    _weaken(WinMainForked)();
-  }
   WinInit(cmdline);
 }
 

@@ -19,13 +19,13 @@
 #include "libc/assert.h"
 #include "libc/calls/calls.h"
 #include "libc/calls/internal.h"
-#include "libc/intrin/fds.h"
 #include "libc/calls/struct/stat.h"
 #include "libc/calls/struct/stat.internal.h"
 #include "libc/calls/syscall_support-nt.internal.h"
 #include "libc/fmt/wintime.internal.h"
 #include "libc/intrin/atomic.h"
 #include "libc/intrin/bsr.h"
+#include "libc/intrin/fds.h"
 #include "libc/intrin/strace.h"
 #include "libc/macros.h"
 #include "libc/mem/alloca.h"
@@ -119,81 +119,82 @@ textwindows int sys_fstat_nt_handle(int64_t handle, const char16_t *path,
 
   // Always set st_blksize to avoid divide by zero issues.
   // The Linux kernel sets this for /dev/tty and similar too.
-  // TODO(jart): GetVolumeInformationByHandle?
   st.st_blksize = 4096;
   st.st_gid = st.st_uid = sys_getuid_nt();
-
-  // We'll use the "umask" to fake out the mode bits.
-  uint32_t umask = atomic_load_explicit(&__umask, memory_order_acquire);
 
   switch (GetFileType(handle)) {
     case kNtFileTypeUnknown:
       break;
     case kNtFileTypeChar:
-      st.st_mode = S_IFCHR | (0666 & ~umask);
+      st.st_mode = S_IFCHR | 0664;
       st.st_dev = 0x66666666;
       st.st_ino = handle;
       break;
     case kNtFileTypePipe:
-      st.st_mode = S_IFIFO | (0666 & ~umask);
+      st.st_mode = S_IFIFO | 0664;
       st.st_dev = 0x55555555;
       st.st_ino = handle;
       break;
     case kNtFileTypeDisk: {
       struct NtByHandleFileInformation wst;
-      if (!GetFileInformationByHandle(handle, &wst)) {
-        return __winerr();
-      }
-      st.st_mode = 0444 & ~umask;
-      if ((wst.dwFileAttributes & kNtFileAttributeDirectory) ||
-          IsWindowsExecutable(handle, path)) {
-        st.st_mode |= 0111 & ~umask;
-      }
-      st.st_flags = wst.dwFileAttributes;
-      if (!(wst.dwFileAttributes & kNtFileAttributeReadonly)) {
-        st.st_mode |= 0222 & ~umask;
-      }
-      if (wst.dwFileAttributes & kNtFileAttributeReparsePoint) {
-        st.st_mode |= S_IFLNK;
-      } else if (wst.dwFileAttributes & kNtFileAttributeDirectory) {
-        st.st_mode |= S_IFDIR;
-      } else {
-        st.st_mode |= S_IFREG;
-      }
-      st.st_atim = FileTimeToTimeSpec(wst.ftLastAccessFileTime);
-      st.st_mtim = FileTimeToTimeSpec(wst.ftLastWriteFileTime);
-      st.st_birthtim = FileTimeToTimeSpec(wst.ftCreationFileTime);
-      // compute time of last status change
-      if (timespec_cmp(st.st_atim, st.st_mtim) > 0) {
-        st.st_ctim = st.st_atim;
-      } else {
-        st.st_ctim = st.st_mtim;
-      }
-      st.st_size = (wst.nFileSizeHigh + 0ull) << 32 | wst.nFileSizeLow;
-      st.st_dev = wst.dwVolumeSerialNumber;
-      st.st_ino = (wst.nFileIndexHigh + 0ull) << 32 | wst.nFileIndexLow;
-      st.st_nlink = wst.nNumberOfLinks;
-      if (S_ISLNK(st.st_mode)) {
-        if (!st.st_size) {
-          long size = GetSizeOfReparsePoint(handle);
-          if (size == -1)
-            return -1;
-          st.st_size = size;
-        }
-      } else {
-        // st_size       = uncompressed size
-        // st_blocks*512 = physical size
-        uint64_t physicalsize;
-        struct NtFileCompressionInfo fci;
-        if (!(wst.dwFileAttributes &
-              (kNtFileAttributeDirectory | kNtFileAttributeReparsePoint)) &&
-            GetFileInformationByHandleEx(handle, kNtFileCompressionInfo, &fci,
-                                         sizeof(fci))) {
-          physicalsize = fci.CompressedFileSize;
+      if (GetFileInformationByHandle(handle, &wst)) {
+        st.st_mode = 0444;
+        if ((wst.dwFileAttributes & kNtFileAttributeDirectory) ||
+            IsWindowsExecutable(handle, path))
+          st.st_mode |= 0111;
+        st.st_flags = wst.dwFileAttributes;
+        if (!(wst.dwFileAttributes & kNtFileAttributeReadonly))
+          st.st_mode |= 0220;
+        if (wst.dwFileAttributes & kNtFileAttributeReparsePoint) {
+          st.st_mode |= S_IFLNK;
+        } else if (wst.dwFileAttributes & kNtFileAttributeDirectory) {
+          st.st_mode |= S_IFDIR;
         } else {
-          physicalsize = st.st_size;
+          st.st_mode |= S_IFREG;
         }
-        st.st_blocks = ROUNDUP(physicalsize, st.st_blksize) / 512;
+        st.st_atim = FileTimeToTimeSpec(wst.ftLastAccessFileTime);
+        st.st_mtim = FileTimeToTimeSpec(wst.ftLastWriteFileTime);
+        st.st_birthtim = FileTimeToTimeSpec(wst.ftCreationFileTime);
+        // compute time of last status change
+        if (timespec_cmp(st.st_atim, st.st_mtim) > 0) {
+          st.st_ctim = st.st_atim;
+        } else {
+          st.st_ctim = st.st_mtim;
+        }
+        st.st_size = (wst.nFileSizeHigh + 0ull) << 32 | wst.nFileSizeLow;
+        st.st_dev = wst.dwVolumeSerialNumber;
+        st.st_ino = (wst.nFileIndexHigh + 0ull) << 32 | wst.nFileIndexLow;
+        st.st_nlink = wst.nNumberOfLinks;
+        if (S_ISLNK(st.st_mode)) {
+          if (!st.st_size) {
+            long size = GetSizeOfReparsePoint(handle);
+            if (size == -1)
+              return -1;
+            st.st_size = size;
+          }
+        } else {
+          // st_size       = uncompressed size
+          // st_blocks*512 = physical size
+          uint64_t physicalsize;
+          struct NtFileCompressionInfo fci;
+          if (!(wst.dwFileAttributes &
+                (kNtFileAttributeDirectory | kNtFileAttributeReparsePoint)) &&
+              GetFileInformationByHandleEx(handle, kNtFileCompressionInfo, &fci,
+                                           sizeof(fci))) {
+            physicalsize = fci.CompressedFileSize;
+          } else {
+            physicalsize = st.st_size;
+          }
+          st.st_blocks = ROUNDUP(physicalsize, st.st_blksize) / 512;
+        }
+      } else if (GetVolumeInformationByHandle(
+                     handle, 0, 0, &wst.dwVolumeSerialNumber, 0, 0, 0, 0)) {
+        st.st_dev = wst.dwVolumeSerialNumber;
+        st.st_mode = S_IFDIR | 0555;
+      } else {
+        // both GetFileInformationByHandle and
+        // GetVolumeInformationByHandle failed
+        return __winerr();
       }
       break;
     }

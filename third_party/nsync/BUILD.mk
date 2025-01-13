@@ -27,7 +27,6 @@ THIRD_PARTY_NSYNC_A_DIRECTDEPS =			\
 	LIBC_INTRIN					\
 	LIBC_NEXGEN32E					\
 	LIBC_NT_KERNEL32				\
-	LIBC_NT_SYNCHRONIZATION				\
 	LIBC_STR					\
 	LIBC_SYSV					\
 	LIBC_SYSV_CALLS
@@ -76,4 +75,5 @@ $(THIRD_PARTY_NSYNC_OBJS): third_party/nsync/BUILD.mk
 .PHONY: o/$(MODE)/third_party/nsync
 o/$(MODE)/third_party/nsync:				\
 	o/$(MODE)/third_party/nsync/mem			\
+	o/$(MODE)/third_party/nsync/testing		\
 	$(THIRD_PARTY_NSYNC_CHECKS)

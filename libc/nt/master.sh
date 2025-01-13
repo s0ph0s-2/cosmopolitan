@@ -40,9 +40,12 @@ imp	''							SetCurrentDirectoryW					kernel32	1
 imp	''							TerminateProcess					kernel32	2
 imp	''							UnlockFileEx						kernel32	5
 imp	''							UnmapViewOfFile						kernel32	1
+imp	''							VirtualAllocEx						kernel32	5
 imp	''							VirtualProtect						kernel32	4
+imp	''							VirtualProtectEx					kernel32	5
 imp	''							WaitForMultipleObjects					kernel32	4
 imp	''							WaitForSingleObject					kernel32	2
+imp	''							WriteProcessMemory					kernel32	5
 imp	'AcquireSRWLockExclusive'				AcquireSRWLockExclusive					kernel32	1
 imp	'AcquireSRWLockShared'					AcquireSRWLockShared					kernel32	1
 imp	'AddDllDirectory'					AddDllDirectory						kernel32	1
@@ -185,7 +188,9 @@ imp	'GetWindowsDirectory'					GetWindowsDirectoryW					kernel32	2
 imp	'GetWindowsDirectoryA'					GetWindowsDirectoryA					kernel32	2
 imp	'GlobalAlloc'						GlobalAlloc						kernel32	2
 imp	'GlobalFree'						GlobalFree						kernel32	1
+imp	'GlobalLock'						GlobalLock						kernel32	1
 imp	'GlobalMemoryStatusEx'					GlobalMemoryStatusEx					kernel32	1
+imp	'GlobalUnlock'						GlobalUnlock						kernel32	1
 imp	'HeapAlloc'						HeapAlloc						kernel32	3
 imp	'HeapCompact'						HeapCompact						kernel32	2
 imp	'HeapCreate'						HeapCreate						kernel32	3
@@ -218,8 +223,9 @@ imp	'Process32First'					Process32FirstW						kernel32	2
 imp	'Process32Next'						Process32NextW						kernel32	2
 imp	'PulseEvent'						PulseEvent						kernel32	1
 imp	'PurgeComm'						PurgeComm						kernel32	2
-imp	'QueryPerformanceCounter'				QueryPerformanceCounter					kernel32	1
+imp	'QueryPerformanceCounter'				QueryPerformanceCounter					kernel32	1	# Windows 7+
 imp	'QueryPerformanceFrequency'				QueryPerformanceFrequency				kernel32	1
+imp	'QueryUnbiasedInterruptTime'				QueryUnbiasedInterruptTime				kernel32	1	# Windows 7+
 imp	'ReadConsole'						ReadConsoleW						kernel32	5
 imp	'ReadConsoleInput'					ReadConsoleInputW					kernel32	4
 imp	'ReadConsoleOutput'					ReadConsoleOutputW					kernel32	5
@@ -258,6 +264,7 @@ imp	'SetEvent'						SetEvent						kernel32	1
 imp	'SetFileAttributes'					SetFileAttributesW					kernel32	2
 imp	'SetFileCompletionNotificationModes'			SetFileCompletionNotificationModes			kernel32	2
 imp	'SetFileInformationByHandle'				SetFileInformationByHandle				kernel32	4
+imp	'SetFilePointer'					SetFilePointer						kernel32	4
 imp	'SetFileTime'						SetFileTime						kernel32	4
 imp	'SetFileValidData'					SetFileValidData					kernel32	2
 imp	'SetHandleCount'					SetHandleCount						kernel32	1
@@ -295,11 +302,10 @@ imp	'UnlockFile'						UnlockFile						kernel32	5
 imp	'UnmapViewOfFile2'					UnmapViewOfFile2					kernel32	2
 imp	'UnmapViewOfFileEx'					UnmapViewOfFileEx					kernel32	3
 imp	'UpdateProcThreadAttribute'				UpdateProcThreadAttribute				kernel32	7
-imp	'VirtualAlloc'						VirtualAlloc						kernel32	4
-imp	'VirtualAllocEx'					VirtualAllocEx						kernel32	5
 imp	'VirtualFree'						VirtualFree						kernel32	3
 imp	'VirtualLock'						VirtualLock						kernel32	2
 imp	'VirtualQuery'						VirtualQuery						kernel32	3
+imp	'VirtualQueryEx'					VirtualQueryEx						kernel32	4
 imp	'VirtualUnlock'						VirtualUnlock						kernel32	2
 imp	'WaitForMultipleObjectsEx'				WaitForMultipleObjectsEx				kernel32	5
 imp	'WaitForSingleObjectEx'					WaitForSingleObjectEx					kernel32	3
@@ -374,6 +380,7 @@ imp	'TraceSetInformation'					TraceSetInformation					advapi32 # Windows 7+
 #
 #	Name							Actual							DLL		Arity
 imp	'AdjustWindowRect'					AdjustWindowRect					user32		3
+imp	'AdjustWindowRectEx'					AdjustWindowRectEx					user32		4
 imp	'AnimateWindow'						AnimateWindow						user32		3
 imp	'AppendMenuA'						AppendMenuA						user32		4
 imp	'AppendMenu'						AppendMenuW						user32		4
@@ -381,6 +388,9 @@ imp	'BeginPaint'						BeginPaint						user32		2
 imp	'BringWindowToTop'					BringWindowToTop					user32		1
 imp	'CallNextHookEx'					CallNextHookEx						user32		4
 imp	'CloseWindow'						CloseWindow						user32		1
+imp	'ClientToScreen'					ClientToScreen						user32		2
+imp	'ClipCursor'						ClipCursor						user32		1
+imp	'CloseClipboard'					CloseClipboard						user32		0
 imp	'CreateIconIndirect'					CreateIconIndirect					user32		1
 imp	'CreateMenu'						CreateMenu						user32		0
 imp	'CreatePopupMenu'					CreatePopupMenu						user32		0
@@ -393,12 +403,15 @@ imp	'DestroyWindow'						DestroyWindow						user32		1
 imp	'DispatchMessage'					DispatchMessageW					user32		1
 imp	'DrawText'						DrawTextW						user32		5
 imp	'DrawTextEx'						DrawTextExW						user32		6
+imp	'EmptyClipboard'					EmptyClipboard						user32		0
 imp	'EndPaint'						EndPaint						user32		2
 imp	'EnumChildWindows'					EnumChildWindows					user32		3
 imp	'FillRect'						FillRect						user32		3
 imp	'FindWindow'						FindWindowW						user32		2
 imp	'FindWindowEx'						FindWindowExW						user32		4
+imp	'GetAsyncKeyState'					GetAsyncKeyState					user32		1
 imp	'GetClientRect'						GetClientRect						user32		2
+imp	'GetClipboardData'					GetClipboardData					user32		1
 imp	'GetCursor'						GetCursor						user32		0
 imp	'GetCursorPos'						GetCursorPos						user32		1
 imp	'GetDC'							GetDC							user32		1
@@ -407,9 +420,12 @@ imp	'GetKeyState'						GetKeyState						user32		1
 imp	'GetKeyboardLayout'					GetKeyboardLayout					user32		1
 imp	'GetMenu'						GetMenu							user32		1
 imp	'GetMessage'						GetMessageW						user32		4
+imp	'GetMonitorInfo'					GetMonitorInfoW						user32		2
+imp	'GetRawInputData'					GetRawInputData						user32		5
 imp	'GetParent'						GetParent						user32		1
 imp	'GetShellWindow'					GetShellWindow						user32		0
 imp	'GetSystemMenu'						GetSystemMenu						user32		2
+imp	'GetSystemMetrics'					GetSystemMetrics					user32		1
 imp	'GetWindow'						GetWindow						user32		2
 imp	'GetWindowPlacement'					GetWindowPlacement					user32		2
 imp	'GetWindowRect'						GetWindowRect						user32		2
@@ -430,13 +446,22 @@ imp	'MapVirtualKeyEx'					MapVirtualKeyExW					user32		3
 imp	'MessageBox'						MessageBoxW						user32		4
 imp	'MessageBoxEx'						MessageBoxExW						user32		5
 imp	'MoveWindow'						MoveWindow						user32		6
+imp	'MonitorFromPoint'					MonitorFromPoint					user32		2
+imp	'MonitorFromWindow'					MonitorFromWindow					user32		2
+imp	'OpenClipboard'						OpenClipboard						user32		1
 imp	'PeekMessage'						PeekMessageW						user32		5
+imp	'PostMessage'						PostMessageW						user32		4
 imp	'PostQuitMessage'					PostQuitMessage						user32		1
+imp	'PtInRect'						PtInRect						user32		2
 imp	'RedrawWindow'						RedrawWindow						user32		4
 imp	'RegisterClass'						RegisterClassW						user32		1
 imp	'RegisterClassEx'					RegisterClassExW					user32		1
+imp	'RegisterRawInputDevices'				RegisterRawInputDevices					user32		3
 imp	'ReleaseCapture'					ReleaseCapture						user32		0
 imp	'ReleaseDC'						ReleaseDC						user32		2
+imp	'ScreenToClient'					ScreenToClient						user32		2
+imp	'SetClipboardData'					SetClipboardData					user32		2
+imp	'SetCursorPos'						SetCursorPos						user32		2
 imp	'SendMessage'						SendMessageW						user32		4
 imp	'SetCapture'						SetCapture						user32		1
 imp	'SetClassLong'						SetClassLongW						user32		3
@@ -444,6 +469,7 @@ imp	'SetCursor'						SetCursor						user32		1
 imp	'SetParent'						SetParent						user32		2
 imp	'SetTimer'						SetTimer						user32		4
 imp	'SetWindowLong'						SetWindowLongW						user32		3
+imp	'SetWindowLongPtr'					SetWindowLongPtrW					user32		3
 imp	'SetWindowPlacement'					SetWindowPlacement					user32		2
 imp	'SetWindowPos'						SetWindowPos						user32		7
 imp	'SetWindowText'						SetWindowTextW						user32		2
@@ -452,12 +478,23 @@ imp	'SetWindowsHookEx'					SetWindowsHookExW					user32		4
 imp	'ShowCaret'						ShowCaret						user32		1
 imp	'ShowCursor'						ShowCursor						user32		1
 imp	'ShowWindow'						ShowWindow						user32		2
+imp	'TrackMouseEvent'					TrackMouseEvent						user32		1
 imp	'TrackPopupMenu'					TrackPopupMenu						user32		7
 imp	'TranslateMessage'					TranslateMessage					user32		1
 imp	'UnhookWindowsHook'					UnhookWindowsHook					user32		2
 imp	'UnhookWindowsHookEx'					UnhookWindowsHookEx					user32		1
+imp	'UnregisterClass'					UnregisterClassW					user32		2
 imp	'UpdateWindow'						UpdateWindow						user32		1
 imp	'WaitForInputIdle'					WaitForInputIdle					user32		2
+imp	'WindowFromPoint'					WindowFromPoint						user32		1
+
+# SHELL32.DLL
+#
+#	Name							Actual							DLL		Arity
+imp	'CommandLineToArgv'					CommandLineToArgvW					shell32		2
+imp	'DragAcceptFiles'					DragAcceptFiles						shell32		2
+imp	'DragFinish'						DragFinish						shell32		1
+imp	'DragQueryFile'						DragQueryFileW						shell32		4
 
 # GDI32.DLL
 #
@@ -471,6 +508,7 @@ imp	'CreateDIBSection'					CreateDIBSection					gdi32		6
 imp	'CreateRectRgn'						CreateRectRgn						gdi32		4
 imp	'DeleteDC'						DeleteDC						gdi32		1
 imp	'DeleteObject'						DeleteObject						gdi32		1
+imp	'DescribePixelFormat'					DescribePixelFormat					gdi32		4
 imp	'GetPixel'						GetPixel						gdi32		3
 imp	'RestoreDC'						RestoreDC						gdi32		2
 imp	'SaveDC'						SaveDC							gdi32		1
@@ -634,6 +672,13 @@ imp	'WakeByAddressSingle'					WakeByAddressSingle					API-MS-Win-Core-Synch-l1-2
 imp	'MapViewOfFile3'					MapViewOfFile3						API-MS-Win-Core-Memory-l1-1-6		9
 imp	'VirtualAlloc2'						VirtualAlloc2						API-MS-Win-Core-Memory-l1-1-6		7
 
+# API-MS-Win-Core-Realtime-l1-1-1.dll (Windows 10+)
+#
+#	Name							Actual							DLL					Arity
+imp	'QueryInterruptTime'					QueryInterruptTime					API-MS-Win-Core-Realtime-l1-1-1		1
+imp	'QueryInterruptTimePrecise'				QueryInterruptTimePrecise				API-MS-Win-Core-Realtime-l1-1-1		1
+imp	'QueryUnbiasedInterruptTimePrecise'			QueryUnbiasedInterruptTimePrecise			API-MS-Win-Core-Realtime-l1-1-1		1
+
 # NTDLL.DLL
 # BEYOND THE PALE
 #
@@ -708,6 +753,7 @@ imp	'NtQuerySecurityObject'					NtQuerySecurityObject					ntdll		5
 imp	'NtQuerySymbolicLinkObject'				NtQuerySymbolicLinkObject				ntdll		3
 imp	'NtQuerySystemInformation'				NtQuerySystemInformation				ntdll		4
 imp	'NtQuerySystemTime'					NtQuerySystemTime					ntdll		1
+imp	'NtQueryTimerResolution'				NtQueryTimerResolution					ntdll		3
 imp	'NtQueryValueKey'					NtQueryValueKey						ntdll		6
 imp	'NtQueryVirtualMemory'					NtQueryVirtualMemory					ntdll		6
 imp	'NtQueryVolumeInformationFile'				NtQueryVolumeInformationFile				ntdll		5
@@ -724,6 +770,7 @@ imp	'NtSetInformationFile'					NtSetInformationFile					ntdll		5
 imp	'NtSetInformationThread'				NtSetInformationThread					ntdll		4
 imp	'NtSetIntervalProfile'					NtSetIntervalProfile					ntdll		2
 imp	'NtSetTimer'						NtSetTimer						ntdll		7
+imp	'NtSetTimerResolution'					NtSetTimerResolution					ntdll		3
 imp	'NtSetValueKey'						NtSetValueKey						ntdll		6
 imp	'NtSignalAndWaitForSingleObject'			NtSignalAndWaitForSingleObject				ntdll		4
 imp	'NtStartProfile'					NtStartProfile						ntdll		1

@@ -37,15 +37,16 @@ TEST_LIBC_INTRIN_DIRECTDEPS =					\
 	LIBC_STR						\
 	LIBC_SYSV						\
 	LIBC_SYSV_CALLS						\
-	LIBC_THREAD						\
 	LIBC_TESTLIB						\
+	LIBC_THREAD						\
 	LIBC_TINYMATH						\
 	LIBC_X							\
-	TOOL_VIZ_LIB						\
 	THIRD_PARTY_COMPILER_RT					\
+	THIRD_PARTY_MUSL					\
 	THIRD_PARTY_NSYNC					\
 	THIRD_PARTY_OPENMP					\
-	THIRD_PARTY_XED
+	THIRD_PARTY_XED						\
+	TOOL_VIZ_LIB						\
 
 TEST_LIBC_INTRIN_DEPS :=					\
 	$(call uniq,$(foreach x,$(TEST_LIBC_INTRIN_DIRECTDEPS),$($(x))))
@@ -57,6 +58,15 @@ o/$(MODE)/test/libc/intrin/intrin.pkg:				\
 o/$(MODE)/test/libc/intrin/%.dbg:				\
 		$(TEST_LIBC_INTRIN_DEPS)			\
 		o/$(MODE)/test/libc/intrin/%.o			\
+		o/$(MODE)/test/libc/intrin/intrin.pkg		\
+		$(LIBC_TESTMAIN)				\
+		$(CRT)						\
+		$(APE_NO_MODIFY_SELF)
+	@$(APELINK)
+
+o/$(MODE)/test/libc/intrin/mmap_test.dbg:			\
+		$(TEST_LIBC_INTRIN_DEPS)			\
+		o/$(MODE)/test/libc/intrin/mmap_test.o		\
 		o/$(MODE)/test/libc/intrin/intrin.pkg		\
 		o/$(MODE)/test/libc/mem/prog/life.elf.zip.o	\
 		$(LIBC_TESTMAIN)				\

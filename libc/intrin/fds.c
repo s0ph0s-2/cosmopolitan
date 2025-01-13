@@ -44,15 +44,13 @@
 #include "libc/sysv/consts/o.h"
 #include "libc/sysv/consts/prot.h"
 #include "libc/thread/thread.h"
-
-#define OPEN_MAX 16
+#include "libc/thread/tls.h"
 
 #ifdef __x86_64__
 __static_yoink("_init_fds");
 #endif
 
 struct Fds g_fds;
-static struct Fd g_fds_static[OPEN_MAX];
 
 static bool TokAtoi(const char **str, long *res) {
   int c, d;
@@ -86,19 +84,14 @@ static textwindows void SetupWinStd(struct Fds *fds, int i, uint32_t x) {
 }
 
 textstartup void __init_fds(int argc, char **argv, char **envp) {
+
   struct Fds *fds;
   fds = &g_fds;
   fds->n = 4;
   atomic_store_explicit(&fds->f, 3, memory_order_relaxed);
-  if (_weaken(_extend)) {
-    fds->p = fds->e = (void *)kMemtrackFdsStart;
-    fds->e =
-        _weaken(_extend)(fds->p, fds->n * sizeof(*fds->p), fds->e, MAP_PRIVATE,
-                         kMemtrackFdsStart + kMemtrackFdsSize);
-  } else {
-    fds->p = g_fds_static;
-    fds->e = g_fds_static + OPEN_MAX;
-  }
+  fds->p = fds->e = (void *)kMemtrackFdsStart;
+  fds->e = _extend(fds->p, fds->n * sizeof(*fds->p), fds->e, MAP_PRIVATE,
+                   kMemtrackFdsStart + kMemtrackFdsSize);
 
   // inherit standard i/o file descriptors
   if (IsMetal()) {
@@ -129,6 +122,7 @@ textstartup void __init_fds(int argc, char **argv, char **envp) {
   if (IsWindows()) {
     const char *fdspec;
     if ((fdspec = getenv("_COSMO_FDS_V2"))) {
+      char *smaddr = 0;
       unsetenv("_COSMO_FDS");
       unsetenv("_COSMO_FDS_V2");
       for (;;) {
@@ -151,8 +145,7 @@ textstartup void __init_fds(int argc, char **argv, char **envp) {
           break;
         if (!TokAtoi(&fdspec, &protocol))
           break;
-        if (_weaken(__ensurefds_unlocked))
-          _weaken(__ensurefds_unlocked)(fd);
+        __ensurefds_unlocked(fd);
         struct Fd *f = fds->p + fd;
         if (f->handle && f->handle != -1 && f->handle != handle) {
           CloseHandle(f->handle);
@@ -171,8 +164,13 @@ textstartup void __init_fds(int argc, char **argv, char **envp) {
         if (shand) {
           struct Map *map;
           struct CursorShared *shared;
+          if (!smaddr) {
+            smaddr = __maps_randaddr();
+          } else {
+            smaddr += 65536;
+          }
           if ((shared = MapViewOfFileEx(shand, kNtFileMapWrite, 0, 0,
-                                        sizeof(struct CursorShared), 0))) {
+                                        sizeof(struct CursorShared), smaddr))) {
             if ((f->cursor = _mapanon(sizeof(struct Cursor)))) {
               f->cursor->shared = shared;
               if ((map = __maps_alloc())) {
@@ -182,7 +180,9 @@ textstartup void __init_fds(int argc, char **argv, char **envp) {
                 map->prot = PROT_READ | PROT_WRITE;
                 map->flags = MAP_SHARED | MAP_ANONYMOUS;
                 map->hand = shand;
+                __maps_lock();
                 __maps_insert(map);
+                __maps_unlock();
               }
             }
           }

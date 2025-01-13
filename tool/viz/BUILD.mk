@@ -16,6 +16,7 @@ TOOL_VIZ_BINS =						\
 	$(TOOL_VIZ_COMS:%=%.dbg)
 
 TOOL_VIZ_DIRECTDEPS =					\
+	DSP_AUDIO					\
 	DSP_CORE					\
 	DSP_MPEG					\
 	DSP_SCALE					\
@@ -27,6 +28,7 @@ TOOL_VIZ_DIRECTDEPS =					\
 	LIBC_MEM					\
 	LIBC_NEXGEN32E					\
 	LIBC_NT_COMDLG32				\
+	LIBC_NT_NTDLL					\
 	LIBC_NT_GDI32					\
 	LIBC_NT_KERNEL32				\
 	LIBC_NT_USER32					\

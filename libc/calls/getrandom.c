@@ -86,26 +86,36 @@ static ssize_t GetRandomBsd(char *p, size_t n, void impl(char *, size_t)) {
   }
 }
 
-static ssize_t GetDevUrandom(char *p, size_t n) {
+static ssize_t GetDevUrandom(char *p, size_t n, unsigned f) {
   int fd;
+  int oflags;
   ssize_t rc;
-  BLOCK_SIGNALS;
-  BLOCK_CANCELATION;
-  fd = sys_openat(AT_FDCWD, "/dev/urandom", O_RDONLY | O_CLOEXEC, 0);
+  const char *dev;
+  BEGIN_CANCELATION_POINT;
+  if (f & GRND_RANDOM) {
+    dev = "/dev/random";
+  } else {
+    dev = "/dev/urandom";
+  }
+  oflags = O_RDONLY | O_CLOEXEC;
+  if (f & GRND_NONBLOCK)
+    oflags |= O_NONBLOCK;
+  fd = sys_openat(AT_FDCWD, dev, oflags, 0);
   if (fd != -1) {
     rc = sys_read(fd, p, n);
+    sys_close(fd);
   } else {
     rc = -1;
   }
-  ALLOW_CANCELATION;
-  ALLOW_SIGNALS;
+  END_CANCELATION_POINT;
   return rc;
 }
 
 ssize_t __getrandom(void *p, size_t n, unsigned f) {
   ssize_t rc;
   if (IsWindows()) {
-    rc = ProcessPrng(p, n) ? n : __winerr();
+    ProcessPrng(p, n);  // never fails
+    rc = n;
   } else if (have_getrandom) {
     if (IsXnu() || IsOpenbsd()) {
       rc = GetRandomBsd(p, n, GetRandomEntropy);
@@ -122,7 +132,7 @@ ssize_t __getrandom(void *p, size_t n, unsigned f) {
 #endif
   } else {
     BEGIN_CANCELATION_POINT;
-    rc = GetDevUrandom(p, n);
+    rc = GetDevUrandom(p, n, f);
     END_CANCELATION_POINT;
   }
   return rc;
@@ -175,9 +185,7 @@ ssize_t __getrandom(void *p, size_t n, unsigned f) {
  * @raise EFAULT if the `n` bytes at `p` aren't valid memory
  * @raise EINTR if we needed to block and a signal was delivered instead
  * @cancelationpoint
- * @asyncsignalsafe
  * @restartable
- * @vforksafe
  */
 ssize_t getrandom(void *p, size_t n, unsigned f) {
   ssize_t rc;

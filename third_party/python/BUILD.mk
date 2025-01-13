@@ -1176,12 +1176,13 @@ THIRD_PARTY_PYTHON_STAGE2_A_DIRECTDEPS =				\
 	LIBC_NT_KERNEL32						\
 	LIBC_PROC							\
 	LIBC_RUNTIME							\
-	LIBC_THREAD							\
 	LIBC_SOCK							\
 	LIBC_STDIO							\
 	LIBC_STR							\
+	LIBC_SYSTEM							\
 	LIBC_SYSV							\
 	LIBC_SYSV_CALLS							\
+	LIBC_THREAD							\
 	LIBC_TINYMATH							\
 	LIBC_X								\
 	NET_HTTP							\
@@ -1189,14 +1190,14 @@ THIRD_PARTY_PYTHON_STAGE2_A_DIRECTDEPS =				\
 	THIRD_PARTY_BZIP2						\
 	THIRD_PARTY_GDTOA						\
 	THIRD_PARTY_LINENOISE						\
-	THIRD_PARTY_MUSL						\
 	THIRD_PARTY_MBEDTLS						\
+	THIRD_PARTY_MUSL						\
 	THIRD_PARTY_PYTHON_STAGE1					\
 	THIRD_PARTY_SQLITE3						\
 	THIRD_PARTY_TZ							\
-	THIRD_PARTY_ZLIB						\
 	THIRD_PARTY_XED							\
-	TOOL_ARGS
+	THIRD_PARTY_ZLIB						\
+	TOOL_ARGS							\
 
 THIRD_PARTY_PYTHON_STAGE2_A_DEPS =					\
 	$(call uniq,$(foreach x,$(THIRD_PARTY_PYTHON_STAGE2_A_DIRECTDEPS),$($(x))))
@@ -1844,7 +1845,6 @@ THIRD_PARTY_PYTHON_PYTEST_PYMAINS =						\
 	third_party/python/Lib/test/test_enum.py				\
 	third_party/python/Lib/test/test_enumerate.py				\
 	third_party/python/Lib/test/test_eof.py					\
-	third_party/python/Lib/test/test_epoll.py				\
 	third_party/python/Lib/test/test_errno.py				\
 	third_party/python/Lib/test/test_exception_hierarchy.py			\
 	third_party/python/Lib/test/test_exception_variations.py		\
@@ -2148,8 +2148,6 @@ o/$(MODE)/third_party/python/Lib/test/test_wsgiref.py.runs: private	\
 			/usr/local/etc/httpd/conf/mime.types		\
 			/usr/local/etc/mime.types
 
-o/$(MODE)/third_party/python/Lib/test/test_epoll.py.runs:		\
-		private .PLEDGE = stdio rpath wpath cpath fattr proc inet
 o/$(MODE)/third_party/python/Lib/test/test_wsgiref.py.runs:		\
 		private .PLEDGE = stdio rpath wpath cpath fattr proc inet
 o/$(MODE)/third_party/python/Lib/test/test_fcntl.py.runs:		\
@@ -2786,9 +2784,6 @@ o/$(MODE)/third_party/python/Lib/test/test_dis.py.runs: $(PYTHONTESTER)
 
 o/$(MODE)/third_party/python/Lib/test/test_asyncore.py.runs: $(PYTHONTESTER)
 	@$(COMPILE) -ACHECK -wtT$@ $(PYHARNESSARGS) $(PYTHONTESTER) -m test.test_asyncore $(PYTESTARGS)
-
-o/$(MODE)/third_party/python/Lib/test/test_epoll.py.runs: $(PYTHONTESTER)
-	@$(COMPILE) -ACHECK -wtT$@ $(PYHARNESSARGS) $(PYTHONTESTER) -m test.test_epoll $(PYTESTARGS)
 
 o/$(MODE)/third_party/python/Lib/test/test_cmd_line.py.runs: $(PYTHONTESTER)
 	@$(COMPILE) -ACHECK -wtT$@ $(PYHARNESSARGS) $(PYTHONTESTER) -m test.test_cmd_line $(PYTESTARGS)

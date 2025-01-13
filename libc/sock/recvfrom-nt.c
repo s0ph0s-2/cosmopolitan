@@ -17,9 +17,9 @@
 │ PERFORMANCE OF THIS SOFTWARE.                                                │
 ╚─────────────────────────────────────────────────────────────────────────────*/
 #include "libc/calls/internal.h"
-#include "libc/intrin/fds.h"
 #include "libc/calls/struct/iovec.h"
 #include "libc/calls/struct/sigset.internal.h"
+#include "libc/intrin/fds.h"
 #include "libc/nt/struct/iovec.h"
 #include "libc/nt/winsock.h"
 #include "libc/sock/internal.h"
@@ -42,7 +42,7 @@ struct RecvFromArgs {
   struct NtIovec iovnt[16];
 };
 
-static textwindows int sys_recvfrom_nt_start(int64_t handle,
+textwindows static int sys_recvfrom_nt_start(int64_t handle,
                                              struct NtOverlapped *overlap,
                                              uint32_t *flags, void *arg) {
   struct RecvFromArgs *args = arg;
@@ -59,14 +59,13 @@ textwindows ssize_t sys_recvfrom_nt(int fd, const struct iovec *iov,
     return einval();
   ssize_t rc;
   struct Fd *f = g_fds.p + fd;
-  sigset_t m = __sig_block();
-  bool nonblock = (f->flags & O_NONBLOCK) || (flags & _MSG_DONTWAIT);
-  flags &= ~_MSG_DONTWAIT;
-  rc = __winsock_block(f->handle, flags, nonblock, f->rcvtimeo, m,
-                       sys_recvfrom_nt_start,
+  sigset_t waitmask = __sig_block();
+  rc = __winsock_block(f->handle, flags & ~_MSG_DONTWAIT,
+                       (f->flags & O_NONBLOCK) || (flags & _MSG_DONTWAIT),
+                       f->rcvtimeo, waitmask, sys_recvfrom_nt_start,
                        &(struct RecvFromArgs){iov, iovlen, opt_out_srcaddr,
                                               opt_inout_srcaddrsize});
-  __sig_unblock(m);
+  __sig_unblock(waitmask);
   return rc;
 }
 
