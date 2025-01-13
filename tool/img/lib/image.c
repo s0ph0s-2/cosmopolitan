@@ -84,6 +84,60 @@ uint8_t *ILImageu8SavePNGBuffer(ILImageu8_t image, int stride_bytes, int *length
     return stbi_write_png_to_mem(image.data, stride_bytes, image.width, image.height, image.channels, length);
 }
 
+int ILImageu8SaveJPEGFile(ILImageu8_t image, char const *filename, int quality) {
+    return stbi_write_jpg(filename, image.width, image.height, image.channels, image.data, quality);
+}
+
+typedef struct {
+    int last_pos;
+    int capacity;
+    void *context;
+    int error;
+} custom_stbi_mem_context;
+
+static void custom_stbi_write_mem(void *context, void *data, int size) {
+    custom_stbi_mem_context *c = (custom_stbi_mem_context *)context;
+    if (c->error > 0) {
+        return;
+    }
+    char *dst = (char *)c->context;
+    int total = c->last_pos + size;
+    if (total > c->capacity) {
+        int newcap = c->capacity * 2;
+        char *newbuf = realloc(dst, newcap);
+        if (newbuf == NULL) {
+            free(dst);
+            c->error = 1;
+            return;
+        }
+        c->capacity = newcap;
+        dst = newbuf;
+        c->context = newbuf;
+    }
+    memcpy(dst + c->last_pos, data, size);
+    c->last_pos = total;
+}
+
+uint8_t *ILImageu8SaveJPEGBuffer(ILImageu8_t image, int quality, int *length) {
+    int initial_capacity = (image.width * image.height * image.channels) >> 1;
+    uint8_t *buf = calloc(initial_capacity, sizeof(uint8_t));
+    if (buf == NULL) {
+        return NULL;
+    }
+    custom_stbi_mem_context ctx = {
+        0,
+        initial_capacity,
+        buf,
+        0,
+    };
+    int result = stbi_write_jpg_to_func(custom_stbi_write_mem, &ctx, image.width, image.height, image.channels, image.data, quality);
+    if (result == 0 || ctx.error > 0) {
+        return NULL;
+    }
+    *length = ctx.last_pos;
+    return buf;
+}
+
 const float IMG_LIB_SRGB_LUMA[3] = { 0.2126f, 0.7152f, 0.0722f };
 
 /**

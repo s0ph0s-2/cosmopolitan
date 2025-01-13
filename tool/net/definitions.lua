@@ -4147,6 +4147,19 @@ function img.Imageu8:savefilepng(filename, stride_bytes) end
 ---@overload fun(image: img.Imageu8, quality: number?) nil, error: string
 function img.Imageu8:savebufferpng(stride_bytes) end
 
+--- Encode the image as JPEG and save it to the provided filename.
+---@param filename string Filename to put `image` into.
+---@param quality number? JPEG quality setting (1–100).
+---@return true
+---@overload fun(image: img.Imageu8, filename: string, quality: number?) nil, error: string
+function img.Imageu8:savefilejpeg(filename, quality) end
+
+--- Encode the image as JPEG and return the encoded data for further processing.
+---@param quality number? JPEG quality setting (1–100).
+---@return string encoded
+---@overload fun(image: img.Imageu8, quality: number?) nil, error: string
+function img.Imageu8:savebufferjpeg(quality) end
+
 --- Compute the gradient hash (dHash) of the image.
 --- This implementation should produce identical hashes to FuzzySearch (the Rust img_hash crate, with preprocess_dct set).
 --- @return integer hash
