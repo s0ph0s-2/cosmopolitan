@@ -135,7 +135,7 @@ static int LuaImgImageu8SaveBufferWebP(lua_State *L) {
   unsigned char *buffer;
   float quality;
   image = luaL_checkudata(L, 1, "img.Imageu8");
-  quality = (float)luaL_optnumber(L, 3, 100.0);
+  quality = (float)luaL_optnumber(L, 2, 100.0);
   buffer = ILImageu8SaveWebPBuffer(*image, quality, &buffer_len);
   if (buffer == NULL) {
     lua_pushnil(L);
@@ -205,7 +205,7 @@ static int LuaImgImageu8SaveBufferJPEG(lua_State *L) {
   unsigned char *buffer;
   int quality;
   image = luaL_checkudata(L, 1, "img.Imageu8");
-  quality = (int)luaL_optinteger(L, 3, 100);
+  quality = (int)luaL_optinteger(L, 2, 100);
   buffer = ILImageu8SaveJPEGBuffer(*image, quality, &buffer_len);
   if (buffer == NULL) {
     lua_pushnil(L);
