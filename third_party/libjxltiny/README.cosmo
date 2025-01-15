@@ -1,0 +1,22 @@
+DESCRIPTION
+
+  libjxltiny - small JPEG XL encoder
+
+ORIGIN
+
+  https://github.com/libjxl/libjxl-tiny
+  8eae18172059d54f5c734ca814f23b96eebff859
+  Author: Zoltan Szabadka <szabadka@google.com>
+  Date:   Fri Feb 17 17:10:06 2023 +0100
+  Fix final bitstream assembly for small images.
+
+  If the image is smaller than 256x256 pixels, there can be only one
+  section in the TOC instead of 4.
+
+DOCUMENTATION
+
+  See https://github.com/libjxl/libjxl#library-api
+
+LOCAL CHANGES
+
+  - Updated header paths

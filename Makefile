@@ -303,6 +303,7 @@ include third_party/less/BUILD.mk		# │
 include net/https/BUILD.mk			#─┘
 include third_party/tidy/BUILD.mk
 include third_party/highway/BUILD.mk
+include third_party/libjxltiny/BUILD.mk
 include tool/img/lib/BUILD.mk
 include tool/img/BUILD.mk
 include third_party/BUILD.mk
