@@ -1,0 +1,22 @@
+DESCRIPTION
+
+  highway - C++ library for portable SIMD/vector intrinsics
+
+ORIGIN
+
+  https://github.com/google/highway
+  7f2e26854086fba4255220fd6c77e9141f1f87cc
+  Author: Jan Wassenberg <janwas@google.com>
+  Date:   Wed Aug 3 11:08:24 2022 -0700
+  fix floating-point generator for sort tests. Fixes #897
+
+  PiperOrigin-RevId: 465099347
+
+DOCUMENTATION
+
+  See https://google.github.io/highway/en/master/
+
+LOCAL CHANGES
+
+  - Updated header paths
+  - Patched out build for everything except libhwy.a
