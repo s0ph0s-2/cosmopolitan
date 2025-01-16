@@ -32,7 +32,7 @@ bool check_dimensions(int x, int y, int comp) {
   if (y < 0) {
     return false;
   }
-  if (comp != 3) {
+  if (comp < 3) {
     return false;
   }
   return true;
@@ -44,13 +44,13 @@ jxl::Image3F load_image(const unsigned char *data, int x_int, int y_int, int com
   size_t comp = static_cast<size_t>(comp_int);
   
   jxl::Image3F img(x, y);
-  const size_t stride = x * 3;
+  const size_t stride = x * comp;
   for (size_t y_idx = 0; y_idx < y; ++y_idx) {
     const uint8_t* row_in = &data[y_idx * stride];
-    for (size_t c = 0; c < comp; ++c) {
+    for (size_t c = 0; c < 3; ++c) {
       float* row_out = img.PlaneRow(c, y_idx);
       for (size_t x_idx = 0; x_idx < x; ++x_idx) {
-        uint8_t subpixel = row_in[x_idx * 3 + c];
+        uint8_t subpixel = row_in[x_idx * comp + c];
         row_out[x_idx] = srgb_to_float(subpixel);
       }
     }
