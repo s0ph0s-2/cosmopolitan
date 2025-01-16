@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "tool/img/lib/image.h"
+#include "tool/img/jxltinyc/jxl.h"
 #include "third_party/stb/stb_image.h"
 #include "third_party/stb/stb_image_write.h"
 #include "third_party/rxi_vec/vec.h"
@@ -86,6 +87,14 @@ uint8_t *ILImageu8SavePNGBuffer(ILImageu8_t image, int stride_bytes, int *length
 
 int ILImageu8SaveJPEGFile(ILImageu8_t image, char const *filename, int quality) {
     return stbi_write_jpg(filename, image.width, image.height, image.channels, image.data, quality);
+}
+
+int ILImageu8SaveJXLFile(ILImageu8_t image, char const *filename, float distance) {
+    return jxltinyc_write_jxl(filename, image.width, image.height, image.channels, image.data, distance);
+}
+
+uint8_t *ILImageu8SaveJXLBuffer(ILImageu8_t image, float distance, int *length) {
+    return jxltinyc_write_jxl_to_mem(image.data, image.width, image.height, image.channels, distance, length);
 }
 
 typedef struct {

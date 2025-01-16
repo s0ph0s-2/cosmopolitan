@@ -89,6 +89,22 @@ int ILImageu8SaveJPEGFile(ILImageu8_t, char const *, int);
  */
 uint8_t *ILImageu8SaveJPEGBuffer(ILImageu8_t, int, int *);
 /**
+ * Save the provided image to a JPEG XL file with the specified filename.
+ * @param image The image to save to a file.
+ * @param filename The path and name of the file to create.
+ * @param distance The JPEG XL distance setting to use for encoding. 0.0 is mathematically lossless, 1 is visually lossless. Recommended range is 0.5 to 3.0.
+ * @return 1 if successful, 0 if there was an error.
+ */
+int ILImageu8SaveJXLFile(ILImageu8_t, char const *, float);
+/**
+ * Encode the provided image as a JPEG XL file to a buffer in memory.
+ * @param image The image to encode as JPEG XL.
+ * @param distance The JPEG XL distance setting to use for encoding.  0.0 is mathematically lossless, 1 is visually lossless. Recommended range is 0.5 to 3.0.
+ * @param length The length of the data in the returned buffer.
+ * @return NULL if there was an error, otherwise a pointer to a section of allocated memory that is `length` bytes long, containing a JPEG XL encoding of `image`.
+ */
+uint8_t *ILImageu8SaveJXLBuffer(ILImageu8_t, float, int *);
+/**
  * Free an image after you're done using it.
  * @param image The image to free.
  */

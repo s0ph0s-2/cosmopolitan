@@ -26,11 +26,12 @@ TOOL_IMG_LIB_A_DIRECTDEPS =				\
 	LIBC_FMT					\
 	LIBC_INTRIN					\
 	LIBC_MEM					\
-	LIBC_RUNTIME				\
+	LIBC_RUNTIME					\
 	LIBC_STDIO					\
 	LIBC_STR					\
-	LIBC_TINYMATH				\
-	THIRD_PARTY_STB				\
+	LIBC_TINYMATH					\
+	TOOL_IMG_JXLTINYC				\
+	THIRD_PARTY_STB					\
 	THIRD_PARTY_RXI_VEC
 
 TOOL_IMG_LIB_A_DEPS :=					\
@@ -45,7 +46,7 @@ $(TOOL_IMG_LIB_A).pkg:					\
 		$(TOOL_IMG_LIB_A_OBJS)			\
 		$(foreach x,$(TOOL_IMG_LIB_A_DIRECTDEPS),$($(x)_A).pkg)
 
-$(TOOL_IMG_LIB_A_OBJS): tool/viz/lib/BUILD.mk
+$(TOOL_IMG_LIB_A_OBJS): tool/img/lib/BUILD.mk
 
 TOOL_IMG_LIB_LIBS = $(foreach x,$(TOOL_IMG_LIB_ARTIFACTS),$($(x)))
 TOOL_IMG_LIB_SRCS = $(foreach x,$(TOOL_IMG_LIB_ARTIFACTS),$($(x)_SRCS))
