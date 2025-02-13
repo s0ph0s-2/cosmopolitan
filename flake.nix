@@ -4,47 +4,78 @@
   # Nixpkgs / NixOS version to use.
   inputs.nixpkgs.url = "nixpkgs/nixos-24.11";
 
-  outputs = { self, nixpkgs }:
-    let
+  outputs = {
+    self,
+    nixpkgs,
+  }: let
+    # to work with older version of flakes
+    lastModifiedDate = self.lastModifiedDate or self.lastModified or "19700101";
 
-      # to work with older version of flakes
-      lastModifiedDate = self.lastModifiedDate or self.lastModified or "19700101";
+    version = "3.0.1";
+    cosmocc_version = "3.9.2";
 
-      version = "3.0.1";
+    # System types to support.
+    supportedSystems = ["x86_64-linux" "x86_64-darwin"]; #"aarch64-linux" "aarch64-darwin" ];
+    apes = {
+      x86_64-linux = "o//ape/ape.elf";
+      x86_64-darwin = "o//ape/ape.macho";
+    };
 
-      # System types to support.
-      supportedSystems = [ "x86_64-linux" "x86_64-darwin" ]; #"aarch64-linux" "aarch64-darwin" ];
+    # Helper function to generate an attrset '{ x86_64-linux = f "x86_64-linux"; ... }'.
+    forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
-      # Helper function to generate an attrset '{ x86_64-linux = f "x86_64-linux"; ... }'.
-      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+    # Nixpkgs instantiated for supported system types.
+    nixpkgsFor = forAllSystems (system:
+      import nixpkgs {
+        inherit system;
+        overlays = [self.overlay];
+      });
+  in {
+    formatter.x86_64-darwin = nixpkgs.legacyPackages.x86_64-darwin.alejandra;
 
-      # Nixpkgs instantiated for supported system types.
-      nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; overlays = [ self.overlay ]; });
+    # A Nixpkgs overlay.
+    overlay = final: prev: {
+      # Download and extract the cosmocc toolchain separately, so that the work
+      # can be reused (and so that the build doesn't fail when the Cosmopolitan
+      # makefile tries to do the same thing)
+      cosmocc = final.stdenv.mkDerivation rec {
+        pname = "cosmocc";
+        version = cosmocc_version;
 
-    in
+        strictDeps = true;
+        src = final.fetchurl {
+          url = "https://github.com/jart/cosmopolitan/releases/download/${cosmocc_version}/cosmocc-${cosmocc_version}.zip";
+          hash = "sha256-9P8Tr2X80wnz8c/QQnWZb7f3KkiXcmYoqMnPcy6FAZM=";
+        };
+        sourceRoot = ".";
 
-    {
+        nativeBuildInputs = [final.unzip];
 
-      # A Nixpkgs overlay.
-      overlay = final: prev: {
+        dontCheck = true;
+        dontConfigure = true;
+        dontPatch = true;
+        dontBuild = true;
+        dontFixup = true;
 
-        s0ph0s-cosmopolitan = with final; stdenv.mkDerivation rec {
+        installPhase = ''
+          runHook preInstall
+          mkdir -p "$out"
+          cp -R ./* $out
+          runHook postInstall
+        '';
+      };
+
+      s0ph0s-cosmopolitan = let
+        thisPlatformApe = apes.${final.pkgs.stdenv.hostPlatform.system};
+      in
+        final.stdenv.mkDerivation rec {
           pname = "s0ph0s-cosmopolitan";
           inherit version;
 
           src = ./.;
 
           nativeBuildInputs = [
-            # The cosmopolitan build system downloads pre-built copies of a
-            # patched GCC and LLVM toolchain, called "cosmocc."  This patched
-            # compiler is required for building, and given that it already takes
-            # forever, I don't want to wait for building two whole compiler
-            # toolchains on top of everything else.
-            cacert
-            wget
-            # bintools-unwrapped
-            gnumake
-            unzip
+            final.gnumake
           ];
 
           strictDeps = true;
@@ -54,10 +85,7 @@
           ];
 
           buildFlags = [
-            "o//cosmopolitan.a"
-            "o//libc/crt/crt.o"
-            "o//ape/ape.o"
-            "o//ape/ape.lds"
+            thisPlatformApe
             "o//tool/net/redbean.com"
           ];
 
@@ -69,55 +97,61 @@
           dontConfigure = true;
           dontFixup = true;
 
-          preCheck =
-            let
-              failingTests = [
-                # some syscall tests fail because we're in a sandbox
-                "test/libc/calls/sched_setscheduler_test.c"
-                "test/libc/thread/pthread_create_test.c"
-                "test/libc/calls/getgroups_test.c"
-                # Fails for mystery reasons that I haven't debugged yet.
-                "test/libc/calls/poll_test.c"
-                # Fails because upstream fixed a bug and didn't bother to fix the tests.
-                "test/net/http/parsehttpmessage_test.c"
-              ];
-            in
-            lib.concatStringsSep ";\n" (map (t: "rm -v ${t}") failingTests);
+          preBuild = ''
+            mkdir -p ".cosmocc"
+            ln -sfn ${final.pkgs.cosmocc} ".cosmocc/${cosmocc_version}"
+            ln -sfn ${final.pkgs.cosmocc} ".cosmocc/current"
+          '';
+
+          preCheck = let
+            failingTests = [
+              # some syscall tests fail because we're in a sandbox
+              "test/libc/calls/sched_setscheduler_test.c"
+              "test/libc/thread/pthread_create_test.c"
+              "test/libc/calls/getgroups_test.c"
+              # Fails for mystery reasons that I haven't debugged yet.
+              "test/libc/calls/poll_test.c"
+              # Fails because upstream fixed a bug and didn't bother to fix the tests.
+              "test/net/http/parsehttpmessage_test.c"
+            ];
+          in
+            final.lib.concatStringsSep ";\n" (map (t: "rm -v ${t}") failingTests);
 
           installPhase = ''
             runHook preInstall
 
             mkdir -p $out/{lib,bin}
-            install o/libc/crt/crt.o o/ape/ape.{o,lds} o/ape/ape-no-modify-self.o $out/lib
-            install o/tool/net/redbean $out/bin
+            install ${thisPlatformApe} o/tool/net/redbean $out/bin
             cp -RT . "$dist"
 
             runHook postInstall
           '';
 
-#           passthru = {
-#             cosmocc = callPackage ./cosmocc.nix {
-#               cosmopolitan = finalAttrs.finalPackage;
-#             };
-#           };
-
           meta = {
             homepage = "https://github.com/s0ph0s-dog/cosmopolitan";
             description = "Your build-once run-anywhere c library";
-            license = lib.licenses.isc;
-            platforms = lib.platforms.x86_64;
+            license = final.lib.licenses.isc;
+            platforms = final.lib.platforms.x86_64;
           };
         };
-
-      };
-
-      # Provide some binary packages for selected system types.
-      packages = forAllSystems (system:
-        {
-          inherit (nixpkgsFor.${system}) s0ph0s-cosmopolitan;
-        });
-
-      defaultPackage = forAllSystems (system: self.packages.${system}.s0ph0s-cosmopolitan);
-
     };
+
+    # Provide some binary packages for selected system types.
+    packages = forAllSystems (system: {
+      inherit (nixpkgsFor.${system}) s0ph0s-cosmopolitan;
+    });
+
+    defaultPackage = forAllSystems (system: self.packages.${system}.s0ph0s-cosmopolitan);
+
+    nixosModules.default = {pkgs, ...}: {
+      environment.systemPackages = [pkgs.s0ph0s-cosmopolitan];
+      boot.binfmt.registrations.APE = {
+        interpreter = "${pkgs.s0ph0s-cosmopolitan}/bin/ape";
+        recognitionType = "magic";
+        magicOrExtension = "MZqFpD";
+        fixBinary = true;
+        preserveArgvZero = true;
+      };
+    };
+  };
 }
