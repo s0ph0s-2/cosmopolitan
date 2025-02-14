@@ -16,9 +16,9 @@
 
     # System types to support.
     supportedSystems = ["x86_64-linux" "x86_64-darwin"]; #"aarch64-linux" "aarch64-darwin" ];
-    apes = {
-      x86_64-linux = "o//ape/ape.elf";
-      x86_64-darwin = "o//ape/ape.macho";
+    apeExecSuffix = {
+      x86_64-linux = "elf";
+      x86_64-darwin = "macho";
     };
 
     # Helper function to generate an attrset '{ x86_64-linux = f "x86_64-linux"; ... }'.
@@ -66,7 +66,7 @@
       };
 
       s0ph0s-cosmopolitan = let
-        thisPlatformApe = apes.${final.pkgs.stdenv.hostPlatform.system};
+        thisPlatformApe = "o//ape/ape.${apes.${final.pkgs.stdenv.hostPlatform.system}}";
       in
         final.stdenv.mkDerivation rec {
           pname = "s0ph0s-cosmopolitan";
@@ -125,7 +125,8 @@
             runHook preInstall
 
             mkdir -p $out/{lib,bin}
-            install ${thisPlatformApe} o/tool/net/redbean $out/bin
+            install ${thisPlatformApe} $out/bin/ape
+            install o/tool/net/redbean $out/bin
             cp -RT . "$dist"
 
             runHook postInstall
