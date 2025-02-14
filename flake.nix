@@ -66,7 +66,7 @@
       };
 
       s0ph0s-cosmopolitan = let
-        thisPlatformApe = "o//ape/ape.${apes.${final.pkgs.stdenv.hostPlatform.system}}";
+        thisPlatformApe = "o//ape/ape.${apeExecSuffix.${final.pkgs.stdenv.hostPlatform.system}}";
       in
         final.stdenv.mkDerivation rec {
           pname = "s0ph0s-cosmopolitan";
