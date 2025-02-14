@@ -28,13 +28,13 @@
     nixpkgsFor = forAllSystems (system:
       import nixpkgs {
         inherit system;
-        overlays = [self.overlay];
+        overlays = [self.overlays.default];
       });
   in {
     formatter.x86_64-darwin = nixpkgs.legacyPackages.x86_64-darwin.alejandra;
 
     # A Nixpkgs overlay.
-    overlay = final: prev: {
+    overlays.default = final: prev: {
       # Download and extract the cosmocc toolchain separately, so that the work
       # can be reused (and so that the build doesn't fail when the Cosmopolitan
       # makefile tries to do the same thing)
@@ -143,9 +143,8 @@
     # Provide some binary packages for selected system types.
     packages = forAllSystems (system: {
       inherit (nixpkgsFor.${system}) s0ph0s-cosmopolitan;
+      default = self.packages.${system}.s0ph0s-cosmopolitan;
     });
-
-    defaultPackage = forAllSystems (system: self.packages.${system}.s0ph0s-cosmopolitan);
 
     nixosModules.default = {pkgs, ...}: {
       environment.systemPackages = [pkgs.s0ph0s-cosmopolitan];
