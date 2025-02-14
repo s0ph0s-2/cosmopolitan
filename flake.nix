@@ -149,7 +149,7 @@
 
     nixosModules.default = {pkgs, ...}: {
       boot.binfmt.registrations.APE = {
-        interpreter = "${self.packages.${system}.default}/bin/ape";
+        interpreter = "${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/ape";
         recognitionType = "magic";
         magicOrExtension = "MZqFpD";
         fixBinary = true;
