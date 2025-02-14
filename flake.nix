@@ -149,7 +149,7 @@
 
     nixosModules.default = {pkgs, ...}: {
       boot.binfmt.registrations.APE = {
-        interpreter = "${pkgs.s0ph0s-cosmopolitan}/bin/ape";
+        interpreter = "${self.packages.${system}.default}/bin/ape";
         recognitionType = "magic";
         magicOrExtension = "MZqFpD";
         fixBinary = true;
