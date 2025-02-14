@@ -147,13 +147,13 @@
     });
 
     nixosModules.default = {pkgs, ...}: {
-      environment.systemPackages = [pkgs.s0ph0s-cosmopolitan];
       boot.binfmt.registrations.APE = {
         interpreter = "${pkgs.s0ph0s-cosmopolitan}/bin/ape";
         recognitionType = "magic";
         magicOrExtension = "MZqFpD";
         fixBinary = true;
         preserveArgvZero = true;
+        wrapInterpreterInShell = false;
       };
     };
   };
